@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Covoiturage Basket U15</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            line-height: 1.6; 
+            margin: 0; 
+            padding: 10px; 
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+        h1, h2, h3 { 
+            color: #333; 
+            text-align: center;
+        }
+        .section { 
+            margin-bottom: 20px; 
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        input, select, button { 
+            margin: 5px 0; 
+            padding: 10px; 
+            width: 100%; 
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+        #dateMatch {
+            width: 100%;
+            max-width: 200px;
+            margin: 10px auto;
+            display: block;
+        }
+        #assignations { 
+            margin-top: 20px; 
+        }
+        .conducteur { 
+            background-color: #e0e0e0; 
+            padding: 10px; 
+            margin-bottom: 10px; 
+            border-radius: 8px;
+        }
+        .passagers { 
+            margin-left: 10px;
+            margin-top: 5px;
+        }
+        .list-buttons { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 5px; 
+            margin-top: 10px; 
+        }
+        .list-buttons button { 
+            background-color: #ddd; 
+            border: none; 
+            padding: 10px; 
+            cursor: pointer; 
+            text-align: left;
+            width: 100%;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .list-buttons button.selected { 
+            background-color: #4CAF50; 
+            color: white; 
+        }
+        #assignationSection { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 10px; 
+        }
+        #assignationSection select, 
+        #assignationSection button { 
+            width: 100%; 
+        }
+        .delete-btn {
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .joueur-item {
+            background-color: #f0f0f0;
+            padding: 5px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Covoiturage Basket U15</h1>
+    
+    <div class="section">
+        <h2>Date du match</h2>
+        <input type="date" id="dateMatch">
+    </div>
+    
+    <div class="section">
+        <h2>Ajouter un joueur</h2>
+        <input type="text" id="nomJoueur" placeholder="Nom du joueur">
+        <button onclick="ajouterJoueur()">Ajouter Joueur</button>
+        <div id="listeJoueurs" class="list-buttons"></div>
+    </div>
+    
+    <div class="section">
+        <h2>Ajouter un conducteur</h2>
+        <input type="text" id="nomConducteur" placeholder="Nom du conducteur">
+        <select id="trajetConducteur">
+            <option value="aller">Aller</option>
+            <option value="retour">Retour</option>
+            <option value="aller-retour">Aller-Retour</option>
+        </select>
+        <input type="number" id="placesVoiture" placeholder="Nombre de places" min="1" value="4">
+        <button onclick="ajouterConducteur()">Ajouter Conducteur</button>
+        <div id="listeConducteurs" class="list-buttons"></div>
+    </div>
+    
+    <div class="section" id="assignationSection">
+        <h2>Assigner un joueur</h2>
+        <select id="conducteurAssign" onchange="mettreAJourOptionsTrajet()">
+            <option value="">Sélectionner un conducteur</option>
+        </select>
+        <select id="trajetAssign">
+            <option value="">Sélectionner un trajet</option>
+        </select>
+        <select id="joueurAssign">
+            <option value="">Sélectionner un joueur</option>
+        </select>
+        <button onclick="assignerJoueur()">Assigner</button>
+    </div>
+    
+    <div id="assignations"></div>
+
+    <script>
+        let joueurs = [];
+        let conducteurs = [];
+
+        // Initialiser la date du jour pour le calendrier
+        document.getElementById('dateMatch').valueAsDate = new Date();
+
+        function ajouterJoueur() {
+            const nom = document.getElementById('nomJoueur').value;
+            if (nom) {
+                joueurs.push({ nom, assigneAller: false, assigneRetour: false });
+                mettreAJourListeJoueurs();
+                mettreAJourSelectJoueurs();
+                document.getElementById('nomJoueur').value = '';
+            }
+        }
+
+        function ajouterConducteur() {
+            const nom = document.getElementById('nomConducteur').value;
+            const trajet = document.getElementById('trajetConducteur').value;
+            const places = parseInt(document.getElementById('placesVoiture').value);
+            if (nom && places > 0) {
+                conducteurs.push({ nom, trajet, places, passagersAller: [], passagersRetour: [] });
+                mettreAJourListeConducteurs();
+                mettreAJourSelectConducteurs();
+                document.getElementById('nomConducteur').value = '';
+                document.getElementById('placesVoiture').value = '4';
+            }
+        }
+
+        function mettreAJourListeJoueurs() {
+            const liste = document.getElementById('listeJoueurs');
+            liste.innerHTML = '';
+            joueurs.forEach((joueur, index) => {
+                const button = document.createElement('button');
+                button.innerHTML = `
+                    ${joueur.nom}
+                    <span>
+                        <button class="delete-btn" onclick="supprimerJoueur(${index})">Supprimer</button>
+                    </span>
+                `;
+                liste.appendChild(button);
+            });
+        }
+
+        function mettreAJourListeConducteurs() {
+            const liste = document.getElementById('listeConducteurs');
+            liste.innerHTML = '';
+            conducteurs.forEach((conducteur, index) => {
+                const button = document.createElement('button');
+                button.innerHTML = `
+                    ${conducteur.nom} (${conducteur.trajet}, ${conducteur.places} places)
+                    <span>
+                        <button class="delete-btn" onclick="supprimerConducteur(${index})">Supprimer</button>
+                    </span>
+                `;
+                liste.appendChild(button);
+            });
+        }
+
+        function supprimerJoueur(index) {
+            joueurs.splice(index, 1);
+            mettreAJourListeJoueurs();
+            mettreAJourSelectJoueurs();
+            conducteurs.forEach(conducteur => {
+                conducteur.passagersAller = conducteur.passagersAller.filter(j => j !== joueurs[index]);
+                conducteur.passagersRetour = conducteur.passagersRetour.filter(j => j !== joueurs[index]);
+            });
+            afficherAssignations();
+        }
+
+        function supprimerConducteurEtPassagers(index) {
+            const conducteur = conducteurs[index];
+            conducteur.passagersAller.forEach(joueur => joueur.assigneAller = false);
+            conducteur.passagersRetour.forEach(joueur => joueur.assigneRetour = false);
+            
+            conducteurs.splice(index, 1);
+            mettreAJourListeConducteurs();
+            mettreAJourSelectConducteurs();
+            mettreAJourSelectJoueurs();
+            afficherAssignations();
+        }
+
+        function mettreAJourSelectJoueurs() {
+            const select = document.getElementById('joueurAssign');
+            const trajetSelect = document.getElementById('trajetAssign');
+            const trajetSelectionne = trajetSelect.value;
+            
+            select.innerHTML = '<option value="">Sélectionner un joueur</option>';
+            joueurs.forEach((joueur, index) => {
+                if ((trajetSelectionne === 'aller' && !joueur.assigneAller) ||
+                    (trajetSelectionne === 'retour' && !joueur.assigneRetour) ||
+                    (trajetSelectionne === 'aller-retour' && (!joueur.assigneAller || !joueur.assigneRetour))) {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = joueur.nom;
+                    select.appendChild(option);
+                }
+            });
+        }
+
+        function mettreAJourSelectConducteurs() {
+            const select = document.getElementById('conducteurAssign');
+            select.innerHTML = '<option value="">Sélectionner un conducteur</option>';
+            conducteurs.forEach((conducteur, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = `${conducteur.nom} (${conducteur.trajet}, ${conducteur.places} places)`;
+                select.appendChild(option);
+            });
+        }
+
+        function mettreAJourOptionsTrajet() {
+            const conducteurSelect = document.getElementById('conducteurAssign');
+            const trajetSelect = document.getElementById('trajetAssign');
+            const conducteurIndex = conducteurSelect.value;
+
+            trajetSelect.innerHTML = '<option value="">Sélectionner un trajet</option>';
+
+            if (conducteurIndex !== '') {
+                const conducteur = conducteurs[conducteurIndex];
+                if (conducteur.trajet === 'aller' || conducteur.trajet === 'aller-retour') {
+                    trajetSelect.innerHTML += '<option value="aller">Aller</option>';
+                }
+                if (conducteur.trajet === 'retour' || conducteur.trajet === 'aller-retour') {
+                    trajetSelect.innerHTML += '<option value="retour">Retour</option>';
+                }
+                if (conducteur.trajet === 'aller-retour') {
+                    trajetSelect.innerHTML += '<option value="aller-retour">Aller-Retour</option>';
+                }
+            }
+
+            mettreAJourSelectJoueurs();
+        }
+
+        function assignerJoueur() {
+            const joueurIndex = document.getElementById('joueurAssign').value;
+            const trajet = document.getElementById('trajetAssign').value;
+            const conducteurIndex = document.getElementById('conducteurAssign').value;
+            
+            if (joueurIndex !== '' && conducteurIndex !== '' && trajet !== '') {
+                const joueur = joueurs[joueurIndex];
+                const conducteur = conducteurs[conducteurIndex];
+                
+                if ((trajet === 'aller' || trajet === 'aller-retour') && conducteur.trajet !== 'retour') {
+                    if (conducteur.passagersAller.length < conducteur.places && !joueur.assigneAller) {
+                        conducteur.passagersAller.push(joueur);
+                        joueur.assigneAller = true;
+                    } else {
+                        alert("Pas de place disponible pour l'aller ou joueur déjà assigné.");
+                        return;
+                    }
+                }
+                if ((trajet === 'retour' || trajet === 'aller-retour') && conducteur.trajet !== 'aller') {
+                    if (conducteur.passagersRetour.length < conducteur.places && !joueur.assigneRetour) {
+                        conducteur.passagersRetour.push(joueur);
+                        joueur.assigneRetour = true;
+                    } else {
+                        alert("Pas de place disponible pour le retour ou joueur déjà assigné.");
+                        return;
+                    }
+                }
+                
+                mettreAJourListeJoueurs();
+                mettreAJourSelectJoueurs();
+                afficherAssignations();
+            } else {
+                alert("Veuillez sélectionner un conducteur, un trajet et un joueur.");
+            }
+        }
+
+        function afficherAssignations() {
+            const div = document.getElementById('assignations');
+            const dateMatch = document.getElementById('dateMatch').value;
+            div.innerHTML = `<h2>Assignations actuelles pour le match du ${dateMatch}</h2>`;
+            
+            conducteurs.forEach((conducteur, conducteurIndex) => {
+                const conducteurDiv = document.createElement('div');
+                conducteurDiv.className = 'conducteur';
+                conducteurDiv.innerHTML = `
+                    <h3>${conducteur.nom} - ${conducteur.trajet} (${conducteur.places} places)</h3>
+                `;
+                
+                const passagersDiv = document.createElement('div');
+                passagersDiv.className = 'passagers';
+                const tousPassagers = [...new Set([...conducteur.passagersAller, ...conducteur.passagersRetour])];
+                passagersDiv.innerHTML = `<strong>Passagers (${tousPassagers.length}/${conducteur.places}):</strong> `;
+                passagersDiv.innerHTML += tousPassagers.map(joueur => joueur.nom).join(', ') || 'Aucun';
+                conducteurDiv.appendChild(passagersDiv);
+                
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'delete-btn';
+                deleteButton.textContent = 'Supprimer';
+                deleteButton.onclick = () => supprimerConducteurEtPassagers(conducteurIndex);
+                conducteurDiv.appendChild(deleteButton);
+                
+                div.appendChild(conducteurDiv);
+            });
+        }
+
+        // Ajouter des écouteurs d'événements
+        document.getElementById('trajetAssign').addEventListener('change', mettreAJourSelectJoueurs);
+        document.getElementById('dateMatch').addEventListener('change', afficherAssignations);
+
+        // Initialisation
+        mettreAJourSelectJoueurs();
+        mettreAJourSelectConducteurs();
+        afficherAssignations();
+    </script>
+</body>
+</html>
