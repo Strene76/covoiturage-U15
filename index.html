@@ -3,252 +3,119 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Covoiturage Basket U15</title>
-    <style>
-        /* Vos styles CSS existants */
-    </style>
+    <title>Gestion du covoiturage et des joueurs - Basket</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1, h2 { text-align: center; }
+        form { margin-bottom: 20px; }
+        input, button { margin: 5px 0; padding: 5px; }
+        #covoiturageList, #joueursList { border-top: 1px solid #ccc; padding-top: 20px; }
+        .section { margin-bottom: 40px; }
+    </style>
 </head>
 <body>
-    <!-- Votre HTML existant -->
+    <h1>Gestion du covoiturage et des joueurs - Basket</h1>
+    
+    <div class="section">
+        <h2>Ajouter un covoiturage</h2>
+        <form id="covoiturageForm">
+            <input type="text" id="nom" placeholder="Nom du conducteur" required>
+            <input type="datetime-local" id="dateHeure" required>
+            <input type="number" id="places" placeholder="Nombre de places disponibles" required min="1">
+            <button type="submit">Ajouter un covoiturage</button>
+        </form>
+        <div id="covoiturageList"></div>
+    </div>
+
+    <div class="section">
+        <h2>Ajouter un joueur</h2>
+        <form id="joueurForm">
+            <input type="text" id="nomJoueur" placeholder="Nom du joueur" required>
+            <button type="submit">Ajouter un joueur</button>
+        </form>
+        <div id="joueursList"></div>
+    </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Configuration Firebase
-            const firebaseConfig = {
-                // Remplacez ces valeurs par celles de votre projet Firebase
-                apiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
-  authDomain: "covoiturage-u15.firebaseapp.com",
-  databaseURL: "https://covoiturage-u15-default-rtdb.firebaseio.com",
-  projectId: "covoiturage-u15",
-  storageBucket: "covoiturage-u15.appspot.com",
-  messagingSenderId: "83669001760",
-  appId: "1:83669001760:web:b0d65f3832344dd928be45"
-            };
+        // Configuration de Firebase (à remplacer par vos propres informations)
+        const firebaseConfig = {
+            apiKey: "VOTRE_API_KEY",
+            authDomain: "VOTRE_AUTH_DOMAIN",
+            databaseURL: "VOTRE_DATABASE_URL",
+            projectId: "VOTRE_PROJECT_ID",
+            storageBucket: "VOTRE_STORAGE_BUCKET",
+            messagingSenderId: "VOTRE_MESSAGING_SENDER_ID",
+            appId: "VOTRE_APP_ID"
+        };
 
-            // Initialiser Firebase
-            firebase.initializeApp(firebaseConfig);
-            const database = firebase.database();
+        // Initialisation de Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-            let joueurs = [];
-            let conducteurs = [];
+        // Référence à la liste de covoiturage dans la base de données
+        const covoiturageRef = database.ref('covoiturage');
+        // Référence à la liste de joueurs dans la base de données
+        const joueursRef = database.ref('joueurs');
 
-            // Initialiser la date du jour pour le calendrier
-            document.getElementById('dateMatch').valueAsDate = new Date();
+        // Fonction pour ajouter un covoiturage
+        document.getElementById('covoiturageForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nom = document.getElementById('nom').value;
+            const dateHeure = document.getElementById('dateHeure').value;
+            const places = document.getElementById('places').value;
 
-            function sauvegarderDonnees() {
-                database.ref('covoiturage').set({
-                    joueurs: joueurs,
-                    conducteurs: conducteurs
-                });
-            }
+            covoiturageRef.push({
+                nom: nom,
+                dateHeure: dateHeure,
+                places: places
+            });
 
-            function chargerDonnees() {
-                database.ref('covoiturage').once('value').then((snapshot) => {
-                    const data = snapshot.val();
-                    if (data) {
-                        joueurs = data.joueurs || [];
-                        conducteurs = data.conducteurs || [];
-                        mettreAJourListeJoueurs();
-                        mettreAJourListeConducteurs();
-                        mettreAJourSelectJoueurs();
-                        mettreAJourSelectConducteurs();
-                        afficherAssignations();
-                    }
-                });
-            }
+            this.reset();
+        });
 
-            window.ajouterJoueur = function() {
-                const nom = document.getElementById('nomJoueur').value;
-                if (nom) {
-                    joueurs.push({ nom, assigneAller: false, assigneRetour: false });
-                    mettreAJourListeJoueurs();
-                    mettreAJourSelectJoueurs();
-                    document.getElementById('nomJoueur').value = '';
-                    sauvegarderDonnees();
-                }
-            }
+        // Fonction pour ajouter un joueur
+        document.getElementById('joueurForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const nom = document.getElementById('nomJoueur').value;
 
-            window.ajouterConducteur = function() {
-                const nom = document.getElementById('nomConducteur').value;
-                const trajet = document.getElementById('trajetConducteur').value;
-                const places = parseInt(document.getElementById('placesVoiture').value);
-                if (nom && places > 0) {
-                    conducteurs.push({ nom, trajet, places, passagersAller: [], passagersRetour: [] });
-                    mettreAJourListeConducteurs();
-                    mettreAJourSelectConducteurs();
-                    document.getElementById('nomConducteur').value = '';
-                    document.getElementById('placesVoiture').value = '4';
-                    sauvegarderDonnees();
-                }
-            }
+            joueursRef.push({
+                nom: nom
+            });
 
-            function mettreAJourListeJoueurs() {
-                const liste = document.getElementById('listeJoueurs');
-                liste.innerHTML = '';
-                joueurs.forEach((joueur, index) => {
-                    const button = document.createElement('button');
-                    button.innerHTML = `
-                        ${joueur.nom}
-                        <span>
-                            <button class="delete-btn" onclick="supprimerJoueur(${index})">Supprimer</button>
-                        </span>
-                    `;
-                    liste.appendChild(button);
-                });
-            }
+            this.reset();
+        });
 
-            function mettreAJourListeConducteurs() {
-                const liste = document.getElementById('listeConducteurs');
-                liste.innerHTML = '';
-                conducteurs.forEach((conducteur, index) => {
-                    const button = document.createElement('button');
-                    button.innerHTML = `
-                        ${conducteur.nom} (${conducteur.trajet}, ${conducteur.places} places)
-                        <span>
-                            <button class="delete-btn" onclick="supprimerConducteur(${index})">Supprimer</button>
-                        </span>
-                    `;
-                    liste.appendChild(button);
-                });
-            }
+        // Fonction pour afficher les covoiturages
+        covoiturageRef.on('value', function(snapshot) {
+            const covoiturageList = document.getElementById('covoiturageList');
+            covoiturageList.innerHTML = '<h3>Liste des covoiturages</h3>';
+            snapshot.forEach(function(childSnapshot) {
+                const covoiturage = childSnapshot.val();
+                const covoiturageItem = document.createElement('div');
+                covoiturageItem.innerHTML = `
+                    <p><strong>${covoiturage.nom}</strong> - Date et heure : ${covoiturage.dateHeure}</p>
+                    <p>Places disponibles : ${covoiturage.places}</p>
+                    <hr>
+                `;
+                covoiturageList.appendChild(covoiturageItem);
+            });
+        });
 
-            window.supprimerJoueur = function(index) {
-                joueurs.splice(index, 1);
-                mettreAJourListeJoueurs();
-                mettreAJourSelectJoueurs();
-                conducteurs.forEach(conducteur => {
-                    conducteur.passagersAller = conducteur.passagersAller.filter(j => j !== joueurs[index]);
-                    conducteur.passagersRetour = conducteur.passagersRetour.filter(j => j !== joueurs[index]);
-                });
-                afficherAssignations();
-                sauvegarderDonnees();
-            }
-
-            window.supprimerConducteur = function(index) {
-                conducteurs.splice(index, 1);
-                mettreAJourListeConducteurs();
-                mettreAJourSelectConducteurs();
-                afficherAssignations();
-                sauvegarderDonnees();
-            }
-
-            function mettreAJourSelectJoueurs() {
-                const select = document.getElementById('joueurAssign');
-                const trajetSelect = document.getElementById('trajetAssign');
-                const trajetSelectionne = trajetSelect.value;
-                
-                select.innerHTML = '<option value="">Sélectionner un joueur</option>';
-                joueurs.forEach((joueur, index) => {
-                    if ((trajetSelectionne === 'aller' && !joueur.assigneAller) ||
-                        (trajetSelectionne === 'retour' && !joueur.assigneRetour) ||
-                        (trajetSelectionne === 'aller-retour' && (!joueur.assigneAller || !joueur.assigneRetour))) {
-                        const option = document.createElement('option');
-                        option.value = index;
-                        option.textContent = joueur.nom;
-                        select.appendChild(option);
-                    }
-                });
-            }
-
-            function mettreAJourSelectConducteurs() {
-                const select = document.getElementById('conducteurAssign');
-                select.innerHTML = '<option value="">Sélectionner un conducteur</option>';
-                conducteurs.forEach((conducteur, index) => {
-                    const option = document.createElement('option');
-                    option.value = index;
-                    option.textContent = `${conducteur.nom} (${conducteur.trajet}, ${conducteur.places} places)`;
-                    select.appendChild(option);
-                });
-            }
-
-            window.mettreAJourOptionsTrajet = function() {
-                const conducteurSelect = document.getElementById('conducteurAssign');
-                const trajetSelect = document.getElementById('trajetAssign');
-                const conducteurIndex = conducteurSelect.value;
-
-                trajetSelect.innerHTML = '<option value="">Sélectionner un trajet</option>';
-
-                if (conducteurIndex !== '') {
-                    const conducteur = conducteurs[conducteurIndex];
-                    if (conducteur.trajet === 'aller' || conducteur.trajet === 'aller-retour') {
-                        trajetSelect.innerHTML += '<option value="aller">Aller</option>';
-                    }
-                    if (conducteur.trajet === 'retour' || conducteur.trajet === 'aller-retour') {
-                        trajetSelect.innerHTML += '<option value="retour">Retour</option>';
-                    }
-                    if (conducteur.trajet === 'aller-retour') {
-                        trajetSelect.innerHTML += '<option value="aller-retour">Aller-Retour</option>';
-                    }
-                }
-
-                mettreAJourSelectJoueurs();
-            }
-
-            window.assignerJoueur = function() {
-                const joueurIndex = document.getElementById('joueurAssign').value;
-                const trajet = document.getElementById('trajetAssign').value;
-                const conducteurIndex = document.getElementById('conducteurAssign').value;
-                
-                if (joueurIndex !== '' && conducteurIndex !== '' && trajet !== '') {
-                    const joueur = joueurs[joueurIndex];
-                    const conducteur = conducteurs[conducteurIndex];
-                    
-                    if ((trajet === 'aller' || trajet === 'aller-retour') && conducteur.trajet !== 'retour') {
-                        if (conducteur.passagersAller.length < conducteur.places && !joueur.assigneAller) {
-                            conducteur.passagersAller.push(joueur);
-                            joueur.assigneAller = true;
-                        } else {
-                            alert("Pas de place disponible pour l'aller ou joueur déjà assigné.");
-                            return;
-                        }
-                    }
-                    if ((trajet === 'retour' || trajet === 'aller-retour') && conducteur.trajet !== 'aller') {
-                        if (conducteur.passagersRetour.length < conducteur.places && !joueur.assigneRetour) {
-                            conducteur.passagersRetour.push(joueur);
-                            joueur.assigneRetour = true;
-                        } else {
-                            alert("Pas de place disponible pour le retour ou joueur déjà assigné.");
-                            return;
-                        }
-                    }
-                    
-                    mettreAJourListeJoueurs();
-                    mettreAJourSelectJoueurs();
-                    afficherAssignations();
-                    sauvegarderDonnees();
-                } else {
-                    alert("Veuillez sélectionner un conducteur, un trajet et un joueur.");
-                }
-            }
-
-            function afficherAssignations() {
-                const div = document.getElementById('assignations');
-                div.innerHTML = '<h2>Assignations actuelles</h2>';
-                
-                conducteurs.forEach(conducteur => {
-                    const conducteurDiv = document.createElement('div');
-                    conducteurDiv.className = 'conducteur';
-                    conducteurDiv.innerHTML = `<h3>${conducteur.nom} - ${conducteur.trajet} (${conducteur.places} places)</h3>`;
-                    
-                    const passagersDiv = document.createElement('div');
-                    passagersDiv.className = 'passagers';
-                    const tousPassagers = [...new Set([...conducteur.passagersAller, ...conducteur.passagersRetour])];
-                    passagersDiv.innerHTML = `<strong>Passagers (${tousPassagers.length}/${conducteur.places}):</strong> `;
-                    passagersDiv.innerHTML += tousPassagers.map(joueur => joueur.nom).join(', ') || 'Aucun';
-                    conducteurDiv.appendChild(passagersDiv);
-                    
-                    div.appendChild(conducteurDiv);
-                });
-            }
-
-            // Ajouter des écouteurs d'événements pour mettre à jour la liste des joueurs disponibles
-            document.getElementById('trajetAssign').addEventListener('change', mettreAJourSelectJoueurs);
-            document.getElementById('conducteurAssign').addEventListener('change', mettreAJourSelectJoueurs);
-
-            // Initialisation
-            chargerDonnees();
+        // Fonction pour afficher les joueurs
+        joueursRef.on('value', function(snapshot) {
+            const joueursList = document.getElementById('joueursList');
+            joueursList.innerHTML = '<h3>Liste des joueurs</h3>';
+            snapshot.forEach(function(childSnapshot) {
+                const joueur = childSnapshot.val();
+                const joueurItem = document.createElement('div');
+                joueurItem.innerHTML = `
+                    <p><strong>${joueur.nom}</strong></p>
+                    <hr>
+                `;
+                joueursList.appendChild(joueurItem);
+            });
         });
     </script>
 </body>
