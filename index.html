@@ -3,32 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion du covoiturage et des joueurs - Basket</title>
+    <title>Gestion du covoiturage - Basket</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
         h1, h2 { text-align: center; }
         form { margin-bottom: 20px; }
-        input, button { margin: 5px 0; padding: 5px; }
+        input, button, select { margin: 5px 0; padding: 5px; }
+        #dateDisplay { font-size: 1.2em; text-align: center; margin-bottom: 20px; }
         #covoiturageList, #joueursList, #debugInfo { border-top: 1px solid #ccc; padding-top: 20px; }
         .section { margin-bottom: 40px; }
         #debugInfo { background-color: #f0f0f0; padding: 10px; margin-top: 20px; }
+        .joueur-select { display: none; }
     </style>
 </head>
 <body>
-    <h1>Gestion du covoiturage et des joueurs - Basket</h1>
+    <h1>Gestion du covoiturage - Basket</h1>
     
-    <div class="section">
-        <h2>Ajouter un covoiturage</h2>
-        <form id="covoiturageForm">
-            <input type="text" id="nom" placeholder="Nom du conducteur" required>
-            <input type="datetime-local" id="dateHeure" required>
-            <input type="number" id="places" placeholder="Nombre de places disponibles" required min="1">
-            <button type="submit">Ajouter un covoiturage</button>
-        </form>
-        <div id="covoiturageList"></div>
-    </div>
+    <div id="dateDisplay"></div>
 
     <div class="section">
         <h2>Ajouter un joueur</h2>
@@ -37,6 +30,17 @@
             <button type="submit">Ajouter un joueur</button>
         </form>
         <div id="joueursList"></div>
+    </div>
+
+    <div class="section">
+        <h2>Ajouter un covoiturage</h2>
+        <form id="covoiturageForm">
+            <input type="text" id="nom" placeholder="Nom du conducteur" required>
+            <input type="number" id="places" placeholder="Nombre de places disponibles" required min="1">
+            <div id="joueursSelect"></div>
+            <button type="submit">Ajouter un covoiturage</button>
+        </form>
+        <div id="covoiturageList"></div>
     </div>
 
     <div id="debugInfo"></div>
@@ -52,6 +56,13 @@
   messagingSenderId: "83669001760",
   appId: "1:83669001760:web:b0d65f3832344dd928be45"
         };
+
+        // Fonction pour afficher la date actuelle
+        function updateDate() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('dateDisplay').textContent = now.toLocaleDateString('fr-FR', options);
+        }
 
         // Fonction de débogage
         function debugLog(message) {
@@ -70,25 +81,26 @@
 
         const database = firebase.database();
 
-        // Référence à la liste de covoiturage dans la base de données
         const covoiturageRef = database.ref('covoiturage');
-        // Référence à la liste de joueurs dans la base de données
         const joueursRef = database.ref('joueurs');
 
         // Fonction pour ajouter un covoiturage
         document.getElementById('covoiturageForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const nom = document.getElementById('nom').value;
-            const dateHeure = document.getElementById('dateHeure').value;
             const places = document.getElementById('places').value;
+            const date = new Date().toISOString();
+            const joueurs = Array.from(document.querySelectorAll('.joueur-select:checked')).map(el => el.value);
 
             covoiturageRef.push({
                 nom: nom,
-                dateHeure: dateHeure,
-                places: places
+                date: date,
+                places: places,
+                joueurs: joueurs
             }).then(() => {
                 debugLog(`Covoiturage ajouté: ${nom}`);
                 this.reset();
+                updateJoueurSelect();
             }).catch((error) => {
                 debugLog(`Erreur lors de l'ajout du covoiturage: ${error.message}`);
             });
@@ -104,10 +116,34 @@
             }).then(() => {
                 debugLog(`Joueur ajouté: ${nom}`);
                 this.reset();
+                updateJoueurSelect();
             }).catch((error) => {
                 debugLog(`Erreur lors de l'ajout du joueur: ${error.message}`);
             });
         });
+
+        // Fonction pour mettre à jour la sélection des joueurs
+        function updateJoueurSelect() {
+            const joueursSelect = document.getElementById('joueursSelect');
+            joueursSelect.innerHTML = '<h3>Sélectionner les joueurs :</h3>';
+            joueursRef.once('value', function(snapshot) {
+                snapshot.forEach(function(childSnapshot) {
+                    const joueur = childSnapshot.val();
+                    const joueurId = childSnapshot.key;
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `joueur-${joueurId}`;
+                    checkbox.className = 'joueur-select';
+                    checkbox.value = joueurId;
+                    const label = document.createElement('label');
+                    label.htmlFor = `joueur-${joueurId}`;
+                    label.textContent = joueur.nom;
+                    joueursSelect.appendChild(checkbox);
+                    joueursSelect.appendChild(label);
+                    joueursSelect.appendChild(document.createElement('br'));
+                });
+            });
+        }
 
         // Fonction pour afficher les covoiturages
         covoiturageRef.on('value', function(snapshot) {
@@ -116,9 +152,21 @@
             snapshot.forEach(function(childSnapshot) {
                 const covoiturage = childSnapshot.val();
                 const covoiturageItem = document.createElement('div');
+                const date = new Date(covoiturage.date);
+                let joueursHtml = '<p>Joueurs : ';
+                if (covoiturage.joueurs && covoiturage.joueurs.length > 0) {
+                    joueursHtml += covoiturage.joueurs.map(joueurId => {
+                        return joueursRef.child(joueurId).once('value').then(snapshot => snapshot.val().nom);
+                    }).join(', ');
+                } else {
+                    joueursHtml += 'Aucun joueur sélectionné';
+                }
+                joueursHtml += '</p>';
+                
                 covoiturageItem.innerHTML = `
-                    <p><strong>${covoiturage.nom}</strong> - Date et heure : ${covoiturage.dateHeure}</p>
+                    <p><strong>${covoiturage.nom}</strong> - Date : ${date.toLocaleDateString('fr-FR')}</p>
                     <p>Places disponibles : ${covoiturage.places}</p>
+                    ${joueursHtml}
                     <hr>
                 `;
                 covoiturageList.appendChild(covoiturageItem);
@@ -142,9 +190,15 @@
                 joueursList.appendChild(joueurItem);
             });
             debugLog("Liste des joueurs mise à jour");
+            updateJoueurSelect();
         }, function(error) {
             debugLog(`Erreur lors de la récupération des joueurs: ${error.message}`);
         });
+
+        // Mettre à jour la date au chargement de la page
+        updateDate();
+        // Mettre à jour la date toutes les minutes
+        setInterval(updateDate, 60000);
     </script>
 </body>
 </html>
