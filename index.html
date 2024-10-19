@@ -11,8 +11,9 @@
         h1, h2 { text-align: center; }
         form { margin-bottom: 20px; }
         input, button { margin: 5px 0; padding: 5px; }
-        #covoiturageList, #joueursList { border-top: 1px solid #ccc; padding-top: 20px; }
+        #covoiturageList, #joueursList, #debugInfo { border-top: 1px solid #ccc; padding-top: 20px; }
         .section { margin-bottom: 40px; }
+        #debugInfo { background-color: #f0f0f0; padding: 10px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -38,11 +39,12 @@
         <div id="joueursList"></div>
     </div>
 
+    <div id="debugInfo"></div>
+
     <script>
         // Configuration de Firebase (à remplacer par vos propres informations)
         const firebaseConfig = {
-            apiKey: "VOTRE_API_KEY",
-            auapiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
+            apiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
   authDomain: "covoiturage-u15.firebaseapp.com",
   databaseURL: "https://covoiturage-u15-default-rtdb.firebaseio.com",
   projectId: "covoiturage-u15",
@@ -51,8 +53,21 @@
   appId: "1:83669001760:web:b0d65f3832344dd928be45"
         };
 
+        // Fonction de débogage
+        function debugLog(message) {
+            console.log(message);
+            const debugInfo = document.getElementById('debugInfo');
+            debugInfo.innerHTML += `<p>${message}</p>`;
+        }
+
         // Initialisation de Firebase
-        firebase.initializeApp(firebaseConfig);
+        try {
+            firebase.initializeApp(firebaseConfig);
+            debugLog("Firebase initialisé avec succès");
+        } catch (error) {
+            debugLog(`Erreur lors de l'initialisation de Firebase: ${error.message}`);
+        }
+
         const database = firebase.database();
 
         // Référence à la liste de covoiturage dans la base de données
@@ -71,9 +86,12 @@
                 nom: nom,
                 dateHeure: dateHeure,
                 places: places
+            }).then(() => {
+                debugLog(`Covoiturage ajouté: ${nom}`);
+                this.reset();
+            }).catch((error) => {
+                debugLog(`Erreur lors de l'ajout du covoiturage: ${error.message}`);
             });
-
-            this.reset();
         });
 
         // Fonction pour ajouter un joueur
@@ -83,9 +101,12 @@
 
             joueursRef.push({
                 nom: nom
+            }).then(() => {
+                debugLog(`Joueur ajouté: ${nom}`);
+                this.reset();
+            }).catch((error) => {
+                debugLog(`Erreur lors de l'ajout du joueur: ${error.message}`);
             });
-
-            this.reset();
         });
 
         // Fonction pour afficher les covoiturages
@@ -102,6 +123,9 @@
                 `;
                 covoiturageList.appendChild(covoiturageItem);
             });
+            debugLog("Liste des covoiturages mise à jour");
+        }, function(error) {
+            debugLog(`Erreur lors de la récupération des covoiturages: ${error.message}`);
         });
 
         // Fonction pour afficher les joueurs
@@ -117,6 +141,9 @@
                 `;
                 joueursList.appendChild(joueurItem);
             });
+            debugLog("Liste des joueurs mise à jour");
+        }, function(error) {
+            debugLog(`Erreur lors de la récupération des joueurs: ${error.message}`);
         });
     </script>
 </body>
