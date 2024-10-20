@@ -3,15 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Covoiturage U15 - Basket</title>
+    <title>Gestion du covoiturage - Basket</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
-        /* Styles inchangés */
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1, h2 { text-align: center; }
+        form { margin-bottom: 20px; }
+        input, button, select { margin: 5px 0; padding: 5px; }
+        #dateDisplay { font-size: 1.2em; text-align: center; margin-bottom: 20px; }
+        #covoiturageList, #joueursList, #debugInfo { border-top: 1px solid #ccc; padding-top: 20px; }
+        .section { margin-bottom: 40px; }
+        #debugInfo { background-color: #f0f0f0; padding: 10px; margin-top: 20px; }
+        .joueur-select { display: none; }
     </style>
 </head>
 <body>
-    <h1>Covoiturage U15</h1>
+    <h1>Gestion du covoiturage - Basket</h1>
     
     <div id="dateDisplay"></div>
 
@@ -29,16 +37,7 @@
         <form id="covoiturageForm">
             <input type="text" id="nom" placeholder="Nom du conducteur" required>
             <input type="number" id="places" placeholder="Nombre de places disponibles" required min="1">
-            <div class="trajet-options">
-                <label><input type="checkbox" id="aller" name="trajet" value="aller" onchange="toggleJoueurSelection('aller')"> Aller</label>
-                <label><input type="checkbox" id="retour" name="trajet" value="retour" onchange="toggleJoueurSelection('retour')"> Retour</label>
-            </div>
-            <div id="joueursSelectAller" class="joueurs-trajet" style="display: none;">
-                <h3>Joueurs pour l'aller :</h3>
-            </div>
-            <div id="joueursSelectRetour" class="joueurs-trajet" style="display: none;">
-                <h3>Joueurs pour le retour :</h3>
-            </div>
+            <div id="joueursSelect"></div>
             <button type="submit">Ajouter un covoiturage</button>
         </form>
         <div id="covoiturageList"></div>
@@ -50,12 +49,12 @@
         // Configuration de Firebase (à remplacer par vos propres informations)
         const firebaseConfig = {
               apiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
-              authDomain: "covoiturage-u15.firebaseapp.com",
-              databaseURL: "https://covoiturage-u15-default-rtdb.firebaseio.com",
-              projectId: "covoiturage-u15",
-              storageBucket: "covoiturage-u15.appspot.com",
-              messagingSenderId: "83669001760",
-              appId: "1:83669001760:web:b0d65f3832344dd928be45"
+  authDomain: "covoiturage-u15.firebaseapp.com",
+  databaseURL: "https://covoiturage-u15-default-rtdb.firebaseio.com",
+  projectId: "covoiturage-u15",
+  storageBucket: "covoiturage-u15.appspot.com",
+  messagingSenderId: "83669001760",
+  appId: "1:83669001760:web:b0d65f3832344dd928be45"
         };
 
         // Fonction pour afficher la date actuelle
@@ -65,72 +64,51 @@
             document.getElementById('dateDisplay').textContent = now.toLocaleDateString('fr-FR', options);
         }
 
-        // Fonction de débogage améliorée
-        function debugLog(message, type = 'info') {
-            console.log(`[${type.toUpperCase()}] ${message}`);
+        // Fonction de débogage
+        function debugLog(message) {
+            console.log(message);
             const debugInfo = document.getElementById('debugInfo');
-            debugInfo.innerHTML += `<p class="${type}">[${type.toUpperCase()}] ${message}</p>`;
+            debugInfo.innerHTML += `<p>${message}</p>`;
         }
 
         // Initialisation de Firebase
-        let database;
         try {
             firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
             debugLog("Firebase initialisé avec succès");
         } catch (error) {
-            debugLog(`Erreur lors de l'initialisation de Firebase: ${error.message}`, 'error');
+            debugLog(`Erreur lors de l'initialisation de Firebase: ${error.message}`);
         }
+
+        const database = firebase.database();
 
         const covoiturageRef = database.ref('covoiturage');
         const joueursRef = database.ref('joueurs');
 
-        function toggleJoueurSelection(trajet) {
-            const isChecked = document.getElementById(trajet).checked;
-            document.getElementById(`joueursSelect${trajet.charAt(0).toUpperCase() + trajet.slice(1)}`).style.display = isChecked ? 'block' : 'none';
-        }
-
         // Fonction pour ajouter un covoiturage
         document.getElementById('covoiturageForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            debugLog("Tentative d'ajout d'un covoiturage");
             const nom = document.getElementById('nom').value;
             const places = document.getElementById('places').value;
             const date = new Date().toISOString();
-            const aller = document.getElementById('aller').checked;
-            const retour = document.getElementById('retour').checked;
-            const joueursAller = Array.from(document.querySelectorAll('#joueursSelectAller .joueur-select:checked')).map(el => el.value);
-            const joueursRetour = Array.from(document.querySelectorAll('#joueursSelectRetour .joueur-select:checked')).map(el => el.value);
-
-            if (!aller && !retour) {
-                debugLog("Erreur : Aucun trajet sélectionné", 'error');
-                alert("Veuillez sélectionner au moins un trajet (aller et/ou retour)");
-                return;
-            }
+            const joueurs = Array.from(document.querySelectorAll('.joueur-select:checked')).map(el => el.value);
 
             covoiturageRef.push({
                 nom: nom,
                 date: date,
                 places: places,
-                aller: aller,
-                retour: retour,
-                joueursAller: joueursAller,
-                joueursRetour: joueursRetour
+                joueurs: joueurs
             }).then(() => {
                 debugLog(`Covoiturage ajouté: ${nom}`);
                 this.reset();
-                document.getElementById('joueursSelectAller').style.display = 'none';
-                document.getElementById('joueursSelectRetour').style.display = 'none';
                 updateJoueurSelect();
             }).catch((error) => {
-                debugLog(`Erreur lors de l'ajout du covoiturage: ${error.message}`, 'error');
+                debugLog(`Erreur lors de l'ajout du covoiturage: ${error.message}`);
             });
         });
 
         // Fonction pour ajouter un joueur
         document.getElementById('joueurForm').addEventListener('submit', function(e) {
             e.preventDefault();
-            debugLog("Tentative d'ajout d'un joueur");
             const nom = document.getElementById('nomJoueur').value;
 
             joueursRef.push({
@@ -140,57 +118,81 @@
                 this.reset();
                 updateJoueurSelect();
             }).catch((error) => {
-                debugLog(`Erreur lors de l'ajout du joueur: ${error.message}`, 'error');
+                debugLog(`Erreur lors de l'ajout du joueur: ${error.message}`);
             });
         });
 
-        // Fonction pour supprimer un joueur
-        function supprimerJoueur(joueurId) {
-            debugLog(`Tentative de suppression du joueur: ${joueurId}`);
-            joueursRef.child(joueurId).remove()
-                .then(() => {
-                    debugLog(`Joueur supprimé: ${joueurId}`);
-                    updateJoueurSelect();
-                })
-                .catch((error) => {
-                    debugLog(`Erreur lors de la suppression du joueur: ${error.message}`, 'error');
-                });
-
-            // Le reste de la fonction reste inchangé
-        }
-
-        // Fonction pour supprimer un covoiturage
-        function supprimerCovoiturage(covoiturageId) {
-            debugLog(`Tentative de suppression du covoiturage: ${covoiturageId}`);
-            covoiturageRef.child(covoiturageId).remove()
-                .then(() => {
-                    debugLog(`Covoiturage supprimé: ${covoiturageId}`);
-                })
-                .catch((error) => {
-                    debugLog(`Erreur lors de la suppression du covoiturage: ${error.message}`, 'error');
-                });
-        }
-
         // Fonction pour mettre à jour la sélection des joueurs
         function updateJoueurSelect() {
-            debugLog("Mise à jour de la sélection des joueurs");
-            // Le reste de la fonction reste inchangé
+            const joueursSelect = document.getElementById('joueursSelect');
+            joueursSelect.innerHTML = '<h3>Sélectionner les joueurs :</h3>';
+            joueursRef.once('value', function(snapshot) {
+                snapshot.forEach(function(childSnapshot) {
+                    const joueur = childSnapshot.val();
+                    const joueurId = childSnapshot.key;
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = `joueur-${joueurId}`;
+                    checkbox.className = 'joueur-select';
+                    checkbox.value = joueurId;
+                    const label = document.createElement('label');
+                    label.htmlFor = `joueur-${joueurId}`;
+                    label.textContent = joueur.nom;
+                    joueursSelect.appendChild(checkbox);
+                    joueursSelect.appendChild(label);
+                    joueursSelect.appendChild(document.createElement('br'));
+                });
+            });
         }
 
         // Fonction pour afficher les covoiturages
         covoiturageRef.on('value', function(snapshot) {
-            debugLog("Mise à jour de la liste des covoiturages");
-            // Le reste de la fonction reste inchangé
+            const covoiturageList = document.getElementById('covoiturageList');
+            covoiturageList.innerHTML = '<h3>Liste des covoiturages</h3>';
+            snapshot.forEach(function(childSnapshot) {
+                const covoiturage = childSnapshot.val();
+                const covoiturageItem = document.createElement('div');
+                const date = new Date(covoiturage.date);
+                let joueursHtml = '<p>Joueurs : ';
+                if (covoiturage.joueurs && covoiturage.joueurs.length > 0) {
+                    joueursHtml += covoiturage.joueurs.map(joueurId => {
+                        return joueursRef.child(joueurId).once('value').then(snapshot => snapshot.val().nom);
+                    }).join(', ');
+                } else {
+                    joueursHtml += 'Aucun joueur sélectionné';
+                }
+                joueursHtml += '</p>';
+                
+                covoiturageItem.innerHTML = `
+                    <p><strong>${covoiturage.nom}</strong> - Date : ${date.toLocaleDateString('fr-FR')}</p>
+                    <p>Places disponibles : ${covoiturage.places}</p>
+                    ${joueursHtml}
+                    <hr>
+                `;
+                covoiturageList.appendChild(covoiturageItem);
+            });
+            debugLog("Liste des covoiturages mise à jour");
         }, function(error) {
-            debugLog(`Erreur lors de la récupération des covoiturages: ${error.message}`, 'error');
+            debugLog(`Erreur lors de la récupération des covoiturages: ${error.message}`);
         });
 
         // Fonction pour afficher les joueurs
         joueursRef.on('value', function(snapshot) {
-            debugLog("Mise à jour de la liste des joueurs");
-            // Le reste de la fonction reste inchangé
+            const joueursList = document.getElementById('joueursList');
+            joueursList.innerHTML = '<h3>Liste des joueurs</h3>';
+            snapshot.forEach(function(childSnapshot) {
+                const joueur = childSnapshot.val();
+                const joueurItem = document.createElement('div');
+                joueurItem.innerHTML = `
+                    <p><strong>${joueur.nom}</strong></p>
+                    <hr>
+                `;
+                joueursList.appendChild(joueurItem);
+            });
+            debugLog("Liste des joueurs mise à jour");
+            updateJoueurSelect();
         }, function(error) {
-            debugLog(`Erreur lors de la récupération des joueurs: ${error.message}`, 'error');
+            debugLog(`Erreur lors de la récupération des joueurs: ${error.message}`);
         });
 
         // Mettre à jour la date au chargement de la page
