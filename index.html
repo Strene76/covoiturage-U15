@@ -59,7 +59,7 @@
     <script>
         // Configuration Firebase (à remplacer par vos propres informations)
         const firebaseConfig = {
-             apiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
+              apiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
   authDomain: "covoiturage-u15.firebaseapp.com",
   databaseURL: "https://covoiturage-u15-default-rtdb.firebaseio.com",
   projectId: "covoiturage-u15",
@@ -100,7 +100,8 @@
                 covoiturageRef.child('conducteurs').push({
                     nom: nom,
                     trajet: trajet,
-                    passagers: {}
+                    passagers: {},
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
                 });
                 document.getElementById('nomConducteur').value = '';
             }
@@ -147,7 +148,7 @@
             for (const key in data.joueurs) {
                 const joueur = data.joueurs[key];
                 const li = document.createElement('li');
-                li.textContent = `${joueur.nom} (Aller: ${joueur.assigneAller ? 'Assigné' : 'Non assigné'}, Retour: ${joueur.assigneRetour ? 'Assigné' : 'Non assigné'})`;
+                li.textContent = joueur.nom; // Affichage simplifié, sans les informations d'assignation
                 const btnSupprimer = document.createElement('button');
                 btnSupprimer.textContent = 'Supprimer';
                 btnSupprimer.onclick = () => supprimerJoueur(key);
@@ -221,21 +222,6 @@
         covoiturageRef.child('date').on('value', (snapshot) => {
             document.getElementById('dateCovoiturage').value = snapshot.val() || '';
         });
-
-        // Ajouter un timestamp lors de l'ajout d'un conducteur
-        function ajouterConducteur() {
-            const nom = document.getElementById('nomConducteur').value;
-            const trajet = document.getElementById('trajet').value;
-            if (nom) {
-                covoiturageRef.child('conducteurs').push({
-                    nom: nom,
-                    trajet: trajet,
-                    passagers: {},
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-                document.getElementById('nomConducteur').value = '';
-            }
-        }
     </script>
 </body>
 </html>
