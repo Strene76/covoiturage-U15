@@ -94,7 +94,6 @@
             margin-top: 0;
         }
         
-        /* Nouveaux styles pour les petits boutons de suppression */
         .btn-supprimer {
             width: auto;
             padding: 5px 10px;
@@ -123,7 +122,6 @@
                 font-size: 16px;
             }
             
-            /* Ajustement pour les petits boutons sur mobile */
             .btn-supprimer {
                 padding: 8px 12px;
                 font-size: 14px;
@@ -173,7 +171,6 @@
     </div>
 
     <script>
-        // Configuration Firebase (à remplacer par vos propres informations)
         const firebaseConfig = {
            apiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
   authDomain: "covoiturage-u15.firebaseapp.com",
@@ -184,14 +181,11 @@
   appId: "1:83669001760:web:b0d65f3832344dd928be45"
         };
 
-        // Initialiser Firebase
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Référence à la base de données
         const covoiturageRef = database.ref('covoiturage');
 
-        // Fonctions pour ajouter et supprimer des joueurs
         function ajouterJoueur() {
             const nom = document.getElementById('nomJoueur').value;
             if (nom) {
@@ -208,7 +202,6 @@
             covoiturageRef.child('joueurs').child(key).remove();
         }
 
-        // Fonctions pour ajouter et supprimer des conducteurs
         function ajouterConducteur() {
             const nom = document.getElementById('nomConducteur').value;
             const trajet = document.getElementById('trajet').value;
@@ -227,7 +220,6 @@
             covoiturageRef.child('conducteurs').child(key).remove();
         }
 
-        // Fonction pour assigner un joueur à un conducteur
         function assignerJoueur() {
             const conducteurKey = document.getElementById('selectConducteur').value;
             const joueurKey = document.getElementById('selectJoueur').value;
@@ -254,11 +246,9 @@
             }
         }
 
-        // Écouter les changements dans la base de données
         covoiturageRef.on('value', (snapshot) => {
             const data = snapshot.val();
             
-            // Mettre à jour la liste des joueurs
             const listeJoueurs = document.getElementById('listeJoueurs');
             listeJoueurs.innerHTML = '';
             for (const key in data.joueurs) {
@@ -267,13 +257,12 @@
                 li.textContent = joueur.nom;
                 const btnSupprimer = document.createElement('button');
                 btnSupprimer.textContent = 'Supprimer';
-                btnSupprimer.className = 'btn-supprimer'; // Ajout de la classe pour le style
+                btnSupprimer.className = 'btn-supprimer';
                 btnSupprimer.onclick = () => supprimerJoueur(key);
                 li.appendChild(btnSupprimer);
                 listeJoueurs.appendChild(li);
             }
 
-            // Mettre à jour la liste des conducteurs
             const listeConducteurs = document.getElementById('listeConducteurs');
             listeConducteurs.innerHTML = '';
             for (const key in data.conducteurs) {
@@ -282,19 +271,17 @@
                 li.textContent = `${conducteur.nom} (${conducteur.trajet})`;
                 const btnSupprimer = document.createElement('button');
                 btnSupprimer.textContent = 'Supprimer';
-                btnSupprimer.className = 'btn-supprimer'; // Ajout de la classe pour le style
+                btnSupprimer.className = 'btn-supprimer';
                 btnSupprimer.onclick = () => supprimerConducteur(key);
                 li.appendChild(btnSupprimer);
                 listeConducteurs.appendChild(li);
             }
 
-            // Mettre à jour les listes déroulantes
             const selectConducteur = document.getElementById('selectConducteur');
             const selectJoueur = document.getElementById('selectJoueur');
             selectConducteur.innerHTML = '';
             selectJoueur.innerHTML = '';
             
-            // Trier les conducteurs pour que le dernier ajouté soit en dernier
             const conducteursSorted = Object.entries(data.conducteurs || {}).sort((a, b) => a[1].timestamp - b[1].timestamp);
             
             for (const [key, conducteur] of conducteursSorted) {
@@ -313,7 +300,6 @@
                 }
             }
 
-            // Afficher les assignations actuelles
             const assignationsDiv = document.getElementById('assignations');
             assignationsDiv.innerHTML = '';
             for (const [conducteurKey, conducteur] of conducteursSorted) {
@@ -331,12 +317,10 @@
             }
         });
 
-        // Sauvegarder la date du covoiturage
         document.getElementById('dateCovoiturage').addEventListener('change', (e) => {
             covoiturageRef.child('date').set(e.target.value);
         });
 
-        // Charger la date du covoiturage
         covoiturageRef.child('date').on('value', (snapshot) => {
             document.getElementById('dateCovoiturage').value = snapshot.val() || '';
         });
