@@ -300,16 +300,25 @@
                 }
             }
 
-            const assignationsDiv = document.getElementById('assignations');
+             const assignationsDiv = document.getElementById('assignations');
             assignationsDiv.innerHTML = '';
             for (const [conducteurKey, conducteur] of conducteursSorted) {
                 const assignation = document.createElement('div');
                 assignation.className = 'assignation';
                 assignation.innerHTML = `<h3>${conducteur.nom} (${conducteur.trajet})</h3>`;
                 const ul = document.createElement('ul');
-                for (const joueurKey in conducteur.passagers) {
+                if (conducteur.passagers) {
+                    Object.keys(conducteur.passagers).forEach(joueurKey => {
+                        if (data.joueurs && data.joueurs[joueurKey]) {
+                            const li = document.createElement('li');
+                            li.textContent = data.joueurs[joueurKey].nom;
+                            ul.appendChild(li);
+                        }
+                    });
+                }
+                if (ul.children.length === 0) {
                     const li = document.createElement('li');
-                    li.textContent = data.joueurs[joueurKey].nom;
+                    li.textContent = "Aucun passager assigné";
                     ul.appendChild(li);
                 }
                 assignation.appendChild(ul);
