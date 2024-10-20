@@ -101,7 +101,10 @@
             font-size: 0.8em;
             background-color: #e74c3c;
         }
-        
+        .nombre-places {
+         width: 60px;
+        margin-left: 10px;
+        }
         .btn-supprimer:hover {
             background-color: #c0392b;
         }
@@ -147,17 +150,18 @@
             <ul id="listeJoueurs"></ul>
         </div>
 
-        <div class="section">
-            <h2>Ajouter un conducteur</h2>
-            <input type="text" id="nomConducteur" placeholder="Nom du conducteur">
-            <select id="trajet">
-                <option value="aller">Aller</option>
-                <option value="retour">Retour</option>
-                <option value="allerRetour">Aller-Retour</option>
-            </select>
-            <button onclick="ajouterConducteur()">Ajouter</button>
-            <ul id="listeConducteurs"></ul>
-        </div>
+       <div class="section">
+    <h2>Ajouter un conducteur</h2>
+    <input type="text" id="nomConducteur" placeholder="Nom du conducteur">
+    <select id="trajet">
+        <option value="aller">Aller</option>
+        <option value="retour">Retour</option>
+        <option value="allerRetour">Aller-Retour</option>
+    </select>
+    <input type="number" id="nombrePlaces" class="nombre-places" min="1" max="8" value="4" placeholder="Places">
+    <button onclick="ajouterConducteur()">Ajouter</button>
+    <ul id="listeConducteurs"></ul>
+</div>
 
         <div class="section">
             <h2>Assigner les joueurs aux voitures</h2>
@@ -210,18 +214,21 @@
 
         // Fonctions pour ajouter et supprimer des conducteurs
         function ajouterConducteur() {
-            const nom = document.getElementById('nomConducteur').value;
-            const trajet = document.getElementById('trajet').value;
-            if (nom) {
-                covoiturageRef.child('conducteurs').push({
-                    nom: nom,
-                    trajet: trajet,
-                    passagers: {},
-                    timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-                document.getElementById('nomConducteur').value = '';
-            }
-        }
+    const nom = document.getElementById('nomConducteur').value;
+    const trajet = document.getElementById('trajet').value;
+    const nombrePlaces = parseInt(document.getElementById('nombrePlaces').value, 10);
+    if (nom && nombrePlaces > 0) {
+        covoiturageRef.child('conducteurs').push({
+            nom: nom,
+            trajet: trajet,
+            nombrePlaces: nombrePlaces,
+            passagers: {},
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+        });
+        document.getElementById('nomConducteur').value = '';
+        document.getElementById('nombrePlaces').value = '4'; // Réinitialiser à la valeur par défaut
+    }
+}
 
         function supprimerConducteur(key) {
             covoiturageRef.child('conducteurs').child(key).remove();
@@ -229,64 +236,90 @@
 
         // Fonction pour assigner un joueur à un conducteur
         function assignerJoueur() {
-            const conducteurKey = document.getElementById('selectConducteur').value;
-            const joueurKey = document.getElementById('selectJoueur').value;
-            if (conducteurKey && joueurKey) {
-                covoiturageRef.child('conducteurs').child(conducteurKey).once('value', (snapshot) => {
-                    const conducteur = snapshot.val();
-                    covoiturageRef.child('joueurs').child(joueurKey).once('value', (snapshot) => {
-                        const joueur = snapshot.val();
-                        if (conducteur.trajet === 'aller' && !joueur.assigneAller) {
-                            covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(true);
-                        } else if (conducteur.trajet === 'retour' && !joueur.assigneRetour) {
-                            covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(true);
-                        } else if (conducteur.trajet === 'allerRetour' && !joueur.assigneAller && !joueur.assigneRetour) {
-                            covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(true);
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(true);
-                        } else {
-                            alert("Ce joueur est déjà assigné pour ce trajet.");
-                        }
-                    });
-                });
+    const conducteurKey = document.getElementById('selectConducteur').value;
+    const joueurKey = document.getElementById('selectJoueur').value;
+    if (conducteurKey && joueurKey) {
+        covoiturageRef.child('conducteurs').child(conducteurKey).once('value', (snapshot) => {
+            const conducteur = snapshot.val();
+            const nombrePassagersActuel = Object.keys(conducteur.passagers || {}).length;
+            if (nombrePassagersActuel < conducteur.nombrePlaces) {
+                covoiturageRef.child('joueurs').child(joueurKey).once('value', (snapshot) => {
+                    const joueur = snapshot.val();
+                    if (conducteur.trajet === 'aller' && !joueur.assigneAller) {
+                        covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
+                        covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(true);
+                    } else if (conducteur.trajet === 'retour' && !joueur.assigneRetour) {
+                        covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
+                        covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(true);
+                    } else if (conducteur.trajet === 'allerRetour' && !joueur.assigneAller && !joueur.assigneRetour) {
+                        covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
+                        covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(true);
+                        covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(true);
+                    } else {
+                        alert("Ce joueur est déjà assigné pour ce trajet.");
+                    }
+                    // Après l'assignation, on met à jour les listes déroulantes
+                    function mettreAJourListesDeroulantes() {
+    covoiturageRef.once('value', (snapshot) => {
+        const data = snapshot.val();
+        const selectConducteur = document.getElementById('selectConducteur');
+        const selectJoueur = document.getElementById('selectJoueur');
+        const conducteurSelectionne = selectConducteur.value;
+        
+        selectConducteur.innerHTML = '';
+        selectJoueur.innerHTML = '';
+        
+        // Trier les conducteurs
+        const conducteursSorted = Object.entries(data.conducteurs || {}).sort((a, b) => a[1].timestamp - b[1].timestamp);
+        
+        for (const [key, conducteur] of conducteursSorted) {
+            const nombrePassagers = Object.keys(conducteur.passagers || {}).length;
+            if (nombrePassagers < conducteur.nombrePlaces) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = `${conducteur.nom} (${conducteur.trajet}) - ${nombrePassagers}/${conducteur.nombrePlaces}`;
+                selectConducteur.appendChild(option);
+            }
+        }
+        
+        for (const key in data.joueurs) {
+            const joueur = data.joueurs[key];
+            if (!joueur.assigneAller || !joueur.assigneRetour) {
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = joueur.nom;
+                selectJoueur.appendChild(option);
             }
         }
 
+        // Restaurer la sélection précédente du conducteur si possible
+        if (conducteurSelectionne && selectConducteur.querySelector(`option[value="${conducteurSelectionne}"]`)) {
+            selectConducteur.value = conducteurSelectionne;
+        }
+    });
+}
+}
+
         // Écouter les changements dans la base de données
         covoiturageRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            
-            // Mettre à jour la liste des joueurs
-            const listeJoueurs = document.getElementById('listeJoueurs');
-            listeJoueurs.innerHTML = '';
-            for (const key in data.joueurs) {
-                const joueur = data.joueurs[key];
-                const li = document.createElement('li');
-                li.textContent = joueur.nom;
-                const btnSupprimer = document.createElement('button');
-                btnSupprimer.textContent = 'Supprimer';
-                btnSupprimer.className = 'btn-supprimer'; // Ajout de la classe pour le style
-                btnSupprimer.onclick = () => supprimerJoueur(key);
-                li.appendChild(btnSupprimer);
-                listeJoueurs.appendChild(li);
-            }
-
             // Mettre à jour la liste des conducteurs
-            const listeConducteurs = document.getElementById('listeConducteurs');
-            listeConducteurs.innerHTML = '';
-            for (const key in data.conducteurs) {
-                const conducteur = data.conducteurs[key];
-                const li = document.createElement('li');
-                li.textContent = `${conducteur.nom} (${conducteur.trajet})`;
-                const btnSupprimer = document.createElement('button');
-                btnSupprimer.textContent = 'Supprimer';
-                btnSupprimer.className = 'btn-supprimer'; // Ajout de la classe pour le style
-                btnSupprimer.onclick = () => supprimerConducteur(key);
-                li.appendChild(btnSupprimer);
-                listeConducteurs.appendChild(li);
-            }
+const listeConducteurs = document.getElementById('listeConducteurs');
+listeConducteurs.innerHTML = '';
+for (const key in data.conducteurs) {
+    const conducteur = data.conducteurs[key];
+    const li = document.createElement('li');
+    const nombrePassagers = Object.keys(conducteur.passagers || {}).length;
+    li.textContent = `${conducteur.nom} (${conducteur.trajet}) - ${nombrePassagers}/${conducteur.nombrePlaces} places`;
+    const btnSupprimer = document.createElement('button');
+    btnSupprimer.textContent = 'Supprimer';
+    btnSupprimer.className = 'btn-supprimer';
+    btnSupprimer.onclick = () => supprimerConducteur(key);
+    li.appendChild(btnSupprimer);
+    listeConducteurs.appendChild(li);
+}
+
+// Mettre à jour les listes déroulantes
+mettreAJourListesDeroulantes();
 
             // Mettre à jour les listes déroulantes
             const selectConducteur = document.getElementById('selectConducteur');
