@@ -4,359 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Covoiturage U15</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <style>
-        :root {
-            --primary-color: #3498db;
-            --secondary-color: #2ecc71;
-            --background-color: #ecf0f1;
-            --text-color: #34495e;
-            --border-radius: 8px;
-        }
-        
-        body {
-            font-family: 'Arial', sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 20px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        
-        h1, h2 {
-            color: var(--primary-color);
-            margin-top: 0;
-        }
-        
-        .section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background-color: #f9f9f9;
-            border-radius: var(--border-radius);
-        }
-        
-        input, select, button {
-            width: 100%;
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: var(--border-radius);
-            box-sizing: border-box;
-        }
-        
-        button {
-            background-color: var(--primary-color);
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        
-        button:hover {
-            background-color: #2980b9;
-        }
-        
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        
-        li {
-            background-color: white;
-            margin-bottom: 10px;
-            padding: 10px;
-            border-radius: var(--border-radius);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .assignation {
-            background-color: white;
-            padding: 15px;
-            margin-top: 15px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        
-        .assignation h3 {
-            color: var(--secondary-color);
-            margin-top: 0;
-        }
-        
-        /* Nouveaux styles pour les petits boutons de suppression */
-        .btn-supprimer {
-            width: auto;
-            padding: 5px 10px;
-            font-size: 0.8em;
-            background-color: #e74c3c;
-        }
-        
-        .btn-supprimer:hover {
-            background-color: #c0392b;
-        }
-        
-        @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            
-            .container {
-                padding: 10px;
-            }
-            
-            .section {
-                padding: 15px;
-            }
-            
-            input, select, button {
-                font-size: 16px;
-            }
-            .nombre-places {
-    width: 60px;
-    margin-left: 10px;
-}
-            /* Ajustement pour les petits boutons sur mobile */
-            .btn-supprimer {
-                padding: 8px 12px;
-                font-size: 14px;
-            }
-        }
-    </style>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 </head>
-<body>
-    <div class="container">
-        <h1>Covoiturage U15</h1>
-
-        <div class="section">
-            <h2>Date du covoiturage</h2>
-            <input type="date" id="dateCovoiturage">
+<body class="bg-gray-100 p-4">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Covoiturage U15</h1>
+        
+        <div class="mb-6">
+            <label for="date" class="block mb-2 font-semibold">Date du covoiturage :</label>
+            <input type="date" id="date" class="w-full p-2 border rounded">
         </div>
 
-        <div class="section">
-            <h2>Ajouter un joueur</h2>
-            <input type="text" id="nomJoueur" placeholder="Nom du joueur">
-            <button onclick="ajouterJoueur()">Ajouter</button>
-            <ul id="listeJoueurs"></ul>
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-2">Liste des joueurs</h2>
+            <div class="flex mb-2">
+                <input type="text" id="newPlayer" placeholder="Nom du joueur" class="flex-grow p-2 border rounded-l">
+                <button id="addPlayer" class="bg-green-500 text-white px-4 py-2 rounded-r">Ajouter</button>
+            </div>
+            <ul id="playerList" class="list-disc pl-5"></ul>
         </div>
 
-        <div class="section">
-    <h2>Ajouter un conducteur</h2>
-    <input type="text" id="nomConducteur" placeholder="Nom du conducteur">
-    <select id="trajet">
-        <option value="aller">Aller</option>
-        <option value="retour">Retour</option>
-        <option value="allerRetour">Aller-Retour</option>
-    </select>
-    <input type="number" id="nombrePlaces" class="nombre-places" min="1" max="8" value="4" placeholder="Places">
-    <button onclick="ajouterConducteur()">Ajouter</button>
-    <ul id="listeConducteurs"></ul>
-</div>
-
-        <div class="section">
-            <h2>Assigner les joueurs aux voitures</h2>
-            <select id="selectConducteur"></select>
-            <select id="selectJoueur"></select>
-            <button onclick="assignerJoueur()">Assigner</button>
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-2">Conducteurs</h2>
+            <div class="flex mb-2">
+                <input type="text" id="newDriver" placeholder="Nom du conducteur" class="flex-grow p-2 border rounded-l">
+                <input type="number" id="seats" placeholder="Nombre de places" class="w-20 p-2 border-t border-b">
+                <button id="addDriver" class="bg-green-500 text-white px-4 py-2 rounded-r">Ajouter</button>
+            </div>
+            <div id="driverList"></div>
         </div>
 
-        <div class="section">
-            <h2>Assignations actuelles</h2>
-            <div id="assignations"></div>
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-2">Attribution des joueurs</h2>
+            <div class="flex mb-2">
+                <select id="playerSelect" class="flex-grow p-2 border rounded-l"></select>
+                <select id="driverSelect" class="flex-grow p-2 border-t border-b"></select>
+                <button id="assignPlayer" class="bg-blue-500 text-white px-4 py-2 rounded-r">Assigner</button>
+            </div>
+        </div>
+
+        <div>
+            <h2 class="text-xl font-semibold mb-2">Récapitulatif des attributions</h2>
+            <div id="assignments"></div>
         </div>
     </div>
 
     <script>
-        // Configuration Firebase (à remplacer par vos propres informations)
-        const firebaseConfig = {
-           apiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
-  authDomain: "covoiturage-u15.firebaseapp.com",
-  databaseURL: "https://covoiturage-u15-default-rtdb.firebaseio.com",
-  projectId: "covoiturage-u15",
-  storageBucket: "covoiturage-u15.appspot.com",
-  messagingSenderId: "83669001760",
-  appId: "1:83669001760:web:b0d65f3832344dd928be45"
-        };
-
-        // Initialiser Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-
-        // Référence à la base de données
-        const covoiturageRef = database.ref('covoiturage');
-
-        // Fonctions pour ajouter et supprimer des joueurs
-        function ajouterJoueur() {
-            const nom = document.getElementById('nomJoueur').value;
-            if (nom) {
-                covoiturageRef.child('joueurs').push({
-                    nom: nom,
-                    assigneAller: false,
-                    assigneRetour: false
-                });
-                document.getElementById('nomJoueur').value = '';
-            }
-        }
-
-        function supprimerJoueur(key) {
-            covoiturageRef.child('joueurs').child(key).remove();
-        }
-
-        // Fonctions pour ajouter et supprimer des conducteurs
-        function ajouterConducteur() {
-    const nom = document.getElementById('nomConducteur').value;
-    const trajet = document.getElementById('trajet').value;
-    const nombrePlaces = parseInt(document.getElementById('nombrePlaces').value, 10);
-    if (nom && nombrePlaces > 0) {
-        covoiturageRef.child('conducteurs').push({
-            nom: nom,
-            trajet: trajet,
-            nombrePlaces: nombrePlaces,
-            passagers: {},
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-        });
-        document.getElementById('nomConducteur').value = '';
-        document.getElementById('nombrePlaces').value = '4'; // Réinitialiser à la valeur par défaut
-    }
-}
-
-        function supprimerConducteur(key) {
-            covoiturageRef.child('conducteurs').child(key).remove();
-        }
-
-        // Fonction pour assigner un joueur à un conducteur
-        function assignerJoueur() {
-    const conducteurKey = document.getElementById('selectConducteur').value;
-    const joueurKey = document.getElementById('selectJoueur').value;
-    if (conducteurKey && joueurKey) {
-        covoiturageRef.child('conducteurs').child(conducteurKey).once('value', (snapshot) => {
-            const conducteur = snapshot.val();
-            const nombrePassagersActuel = Object.keys(conducteur.passagers || {}).length;
-            if (nombrePassagersActuel < conducteur.nombrePlaces) {
-                covoiturageRef.child('joueurs').child(joueurKey).once('value', (snapshot) => {
-                    const joueur = snapshot.val();
-                    if (conducteur.trajet === 'aller' && !joueur.assigneAller) {
-                        covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
-                        covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(true);
-                    } else if (conducteur.trajet === 'retour' && !joueur.assigneRetour) {
-                        covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
-                        covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(true);
-                    } else if (conducteur.trajet === 'allerRetour' && !joueur.assigneAller && !joueur.assigneRetour) {
-                        covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
-                        covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(true);
-                        covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(true);
-                    } else {
-                        alert("Ce joueur est déjà assigné pour ce trajet.");
-                    }
-          // Après l'assignation, on met à jour les listes déroulantes
-          function mettreAJourListesDeroulantes() {
-    covoiturageRef.once('value', (snapshot) => {
-        const data = snapshot.val();
-        const selectConducteur = document.getElementById('selectConducteur');
-        const selectJoueur = document.getElementById('selectJoueur');
-        const conducteurSelectionne = selectConducteur.value;
-        
-        selectConducteur.innerHTML = '';
-        selectJoueur.innerHTML = '';
-        
-        // Trier les conducteurs
-        const conducteursSorted = Object.entries(data.conducteurs || {}).sort((a, b) => a[1].timestamp - b[1].timestamp);
-        
-        for (const [key, conducteur] of conducteursSorted) {
-            const nombrePassagers = Object.keys(conducteur.passagers || {}).length;
-            if (nombrePassagers < conducteur.nombrePlaces) {
-                const option = document.createElement('option');
-                option.value = key;
-                option.textContent = `${conducteur.nom} (${conducteur.trajet}) - ${nombrePassagers}/${conducteur.nombrePlaces}`;
-                selectConducteur.appendChild(option);
-            }
-        }
-        
-        for (const key in data.joueurs) {
-            const joueur = data.joueurs[key];
-            if (!joueur.assigneAller || !joueur.assigneRetour) {
-                const option = document.createElement('option');
-                option.value = key;
-                option.textContent = joueur.nom;
-                selectJoueur.appendChild(option);
-            }
-        }
-
-        // Restaurer la sélection précédente du conducteur si possible
-        if (conducteurSelectionne && selectConducteur.querySelector(`option[value="${conducteurSelectionne}"]`)) {
-            selectConducteur.value = conducteurSelectionne;
-        }
-    });
-}
-}
-
-        // Écouter les changements dans la base de données
-        covoiturageRef.on('value', (snapshot) => {
-    const data = snapshot.val();
-    
-    // Mettre à jour la liste des joueurs
-    const listeJoueurs = document.getElementById('listeJoueurs');
-    listeJoueurs.innerHTML = '';
-    for (const key in data.joueurs) {
-        const joueur = data.joueurs[key];
-        const li = document.createElement('li');
-        li.textContent = joueur.nom;
-        const btnSupprimer = document.createElement('button');
-        btnSupprimer.textContent = 'Supprimer';
-        btnSupprimer.className = 'btn-supprimer';
-        btnSupprimer.onclick = () => supprimerJoueur(key);
-        li.appendChild(btnSupprimer);
-        listeJoueurs.appendChild(li);
-    }
-
-    // Mettre à jour la liste des conducteurs
-    const listeConducteurs = document.getElementById('listeConducteurs');
-    listeConducteurs.innerHTML = '';
-    for (const key in data.conducteurs) {
-        const conducteur = data.conducteurs[key];
-        const li = document.createElement('li');
-        const nombrePassagers = Object.keys(conducteur.passagers || {}).length;
-        li.textContent = `${conducteur.nom} (${conducteur.trajet}) - ${nombrePassagers}/${conducteur.nombrePlaces} places`;
-        const btnSupprimer = document.createElement('button');
-        btnSupprimer.textContent = 'Supprimer';
-        btnSupprimer.className = 'btn-supprimer';
-        btnSupprimer.onclick = () => supprimerConducteur(key);
-        li.appendChild(btnSupprimer);
-        listeConducteurs.appendChild(li);
-    }
-
-    // Mettre à jour les assignations actuelles
-    const assignationsDiv = document.getElementById('assignations');
-    assignationsDiv.innerHTML = '';
-    for (const key in data.conducteurs) {
-        const conducteur = data.conducteurs[key];
-        const assignation = document.createElement('div');
-        assignation.className = 'assignation';
-        const nombrePassagers = Object.keys(conducteur.passagers || {}).length;
-        assignation.innerHTML = `<h3>${conducteur.nom} (${conducteur.trajet}) - ${nombrePassagers}/${conducteur.nombrePlaces} places</h3>`;
-        const ul = document.createElement('ul');
-        for (const joueurKey in conducteur.passagers) {
-            const li = document.createElement('li');
-            li.textContent = data.joueurs[joueurKey].nom;
-            ul.appendChild(li);
-        }
-        assignation.appendChild(ul);
-        assignationsDiv.appendChild(assignation);
-    }
-
-    // Mettre à jour les listes déroulantes
-    mettreAJourListesDeroulantes();
-});
+        // Ici, nous ajouterons le code JavaScript pour gérer les interactions et la sauvegarde avec Firebase
+        // Ce code sera fourni séparément pour plus de clarté
     </script>
 </body>
 </html>
