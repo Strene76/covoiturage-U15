@@ -126,9 +126,6 @@
                 padding: 8px 12px;
                 font-size: 14px;
             }
-            .week-selector {
-            margin-bottom: 20px;
-        }
         }
     </style>
 </head>
@@ -136,13 +133,6 @@
     <div class="container">
         <h1>Covoiturage U15</h1>
 
-        <div class="section week-selector">
-            <h2>Sélectionner la semaine</h2>
-            <input type="week" id="weekSelector">
-            <button onclick="chargerSemaine()">Charger</button>
-            <button onclick="nouvelleSemaine()">Nouvelle semaine</button>
-        </div>
-        
         <div class="section">
             <h2>Date du covoiturage</h2>
             <input type="date" id="dateCovoiturage">
@@ -182,166 +172,23 @@
 
     <script>
         const firebaseConfig = {
-            apiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
-            authDomain: "covoiturage-u15.firebaseapp.com",
-            databaseURL: "https://covoiturage-u15-default-rtdb.firebaseio.com",
-            projectId: "covoiturage-u15",
-            storageBucket: "covoiturage-u15.appspot.com",
-            messagingSenderId: "83669001760",
-            appId: "1:83669001760:web:b0d65f3832344dd928be45"
+           apiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
+  authDomain: "covoiturage-u15.firebaseapp.com",
+  databaseURL: "https://covoiturage-u15-default-rtdb.firebaseio.com",
+  projectId: "covoiturage-u15",
+  storageBucket: "covoiturage-u15.appspot.com",
+  messagingSenderId: "83669001760",
+  appId: "1:83669001760:web:b0d65f3832344dd928be45"
         };
 
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        let semaineActuelle;
-
-        function getWeekNumber(d) {
-            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-            var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
-            return d.getUTCFullYear() + "-W" + (weekNo < 10 ? '0' + weekNo : weekNo);
-        }
-
-        function chargerSemaine() {
-            const weekInput = document.getElementById('weekSelector');
-            semaineActuelle = weekInput.value;
-            if (!semaineActuelle) {
-                alert("Veuillez sélectionner une semaine.");
-                return;
-            }
-            covoiturageRef = database.ref('covoiturage/' + semaineActuelle);
-            covoiturageRef.once('value', (snapshot) => {
-                if (!snapshot.exists()) {
-                    if (confirm("Aucune donnée pour cette semaine. Voulez-vous créer une nouvelle configuration ?")) {
-                        nouvelleSemaine();
-                    }
-                } else {
-                    rafraichirInterface();
-                }
-            });
-        }
-
-        function nouvelleSemaine() {
-            const weekInput = document.getElementById('weekSelector');
-            semaineActuelle = weekInput.value || getWeekNumber(new Date());
-            weekInput.value = semaineActuelle;
-            covoiturageRef = database.ref('covoiturage/' + semaineActuelle);
-            covoiturageRef.set({
-                joueurs: {},
-                conducteurs: {},
-                date: ""
-            });
-            rafraichirInterface();
-        }
-
-        function rafraichirInterface() {
-            // Réinitialiser l'interface
-            document.getElementById('listeJoueurs').innerHTML = '';
-            document.getElementById('listeConducteurs').innerHTML = '';
-            document.getElementById('assignations').innerHTML = '';
-            document.getElementById('selectConducteur').innerHTML = '';
-            document.getElementById('selectJoueur').innerHTML = '';
-            document.getElementById('dateCovoiturage').value = '';
-
-            // Charger les données
-            covoiturageRef.on('value', onDataChange);
-        }
-
-        function onDataChange(snapshot) {
-            const data = snapshot.val();
-            if (!data) return;
-
-            // Mise à jour de la liste des joueurs
-            const listeJoueurs = document.getElementById('listeJoueurs');
-            listeJoueurs.innerHTML = '';
-            for (const key in data.joueurs) {
-                const joueur = data.joueurs[key];
-                const li = document.createElement('li');
-                li.textContent = joueur.nom;
-                const btnSupprimer = document.createElement('button');
-                btnSupprimer.textContent = 'Supprimer';
-                btnSupprimer.className = 'btn-supprimer';
-                btnSupprimer.onclick = () => supprimerJoueur(key);
-                li.appendChild(btnSupprimer);
-                listeJoueurs.appendChild(li);
-            }
-
-            // Mise à jour de la liste des conducteurs
-            const listeConducteurs = document.getElementById('listeConducteurs');
-            listeConducteurs.innerHTML = '';
-            for (const key in data.conducteurs) {
-                const conducteur = data.conducteurs[key];
-                const li = document.createElement('li');
-                li.textContent = `${conducteur.nom} (${conducteur.trajet})`;
-                const btnSupprimer = document.createElement('button');
-                btnSupprimer.textContent = 'Supprimer';
-                btnSupprimer.className = 'btn-supprimer';
-                btnSupprimer.onclick = () => supprimerConducteur(key);
-                li.appendChild(btnSupprimer);
-                listeConducteurs.appendChild(li);
-            }
-
-            // Mise à jour des sélecteurs
-            const selectConducteur = document.getElementById('selectConducteur');
-            const selectJoueur = document.getElementById('selectJoueur');
-            const selectedConducteurKey = selectConducteur.value;
-            selectConducteur.innerHTML = '<option value="">Sélectionnez un conducteur</option>';
-            selectJoueur.innerHTML = '<option value="">Sélectionnez un joueur</option>';
-
-            const conducteursSorted = Object.entries(data.conducteurs || {}).sort((a, b) => a[1].timestamp - b[1].timestamp);
-
-            for (const [key, conducteur] of conducteursSorted) {
-                const option = document.createElement('option');
-                option.value = key;
-                option.textContent = `${conducteur.nom} (${conducteur.trajet})`;
-                selectConducteur.appendChild(option);
-            }
-
-            if (selectedConducteurKey) {
-                selectConducteur.value = selectedConducteurKey;
-                updateJoueursList(selectedConducteurKey);
-            }
-
-            // Mise à jour des assignations
-            const assignationsDiv = document.getElementById('assignations');
-            assignationsDiv.innerHTML = '';
-            for (const [conducteurKey, conducteur] of conducteursSorted) {
-                const assignation = document.createElement('div');
-                assignation.className = 'assignation';
-                assignation.innerHTML = `<h3>${conducteur.nom} (${conducteur.trajet})</h3>`;
-                const ul = document.createElement('ul');
-                if (conducteur.passagers) {
-                    Object.keys(conducteur.passagers).forEach(joueurKey => {
-                        if (data.joueurs && data.joueurs[joueurKey]) {
-                            const li = document.createElement('li');
-                            li.textContent = data.joueurs[joueurKey].nom;
-                            const btnSupprimer = document.createElement('button');
-                            btnSupprimer.textContent = 'Supprimer';
-                            btnSupprimer.className = 'btn-supprimer';
-                            btnSupprimer.onclick = () => supprimerAssignation(conducteurKey, joueurKey);
-                            li.appendChild(btnSupprimer);
-                            ul.appendChild(li);
-                        }
-                    });
-                }
-                if (ul.children.length === 0) {
-                    const li = document.createElement('li');
-                    li.textContent = "Aucun passager assigné";
-                    ul.appendChild(li);
-                }
-                assignation.appendChild(ul);
-                assignationsDiv.appendChild(assignation);
-            }
-
-            // Mise à jour de la date
-            document.getElementById('dateCovoiturage').value = data.date || '';
-        }
+        const covoiturageRef = database.ref('covoiturage');
 
         function ajouterJoueur() {
             const nom = document.getElementById('nomJoueur').value;
-            if (nom && covoiturageRef) {
+            if (nom) {
                 covoiturageRef.child('joueurs').push({
                     nom: nom,
                     assigneAller: false,
@@ -352,15 +199,13 @@
         }
 
         function supprimerJoueur(key) {
-            if (covoiturageRef) {
-                covoiturageRef.child('joueurs').child(key).remove();
-            }
+            covoiturageRef.child('joueurs').child(key).remove();
         }
 
         function ajouterConducteur() {
             const nom = document.getElementById('nomConducteur').value;
             const trajet = document.getElementById('trajet').value;
-            if (nom && covoiturageRef) {
+            if (nom) {
                 covoiturageRef.child('conducteurs').push({
                     nom: nom,
                     trajet: trajet,
@@ -372,9 +217,7 @@
         }
 
         function supprimerConducteur(key) {
-            if (covoiturageRef) {
-                covoiturageRef.child('conducteurs').child(key).remove();
-            }
+            covoiturageRef.child('conducteurs').child(key).remove();
         }
 
         function assignerJoueur() {
@@ -433,18 +276,15 @@
         }
 
         function supprimerAssignation(conducteurKey, joueurKey) {
-            if (covoiturageRef) {
-                covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).remove();
-                covoiturageRef.child('joueurs').child(joueurKey).once('value', (snapshot) => {
-                    const joueur = snapshot.val();
-                    const updates = {};
-                    if (joueur.assigneAller) updates['assigneAller'] = false;
-                    if (joueur.assigneRetour) updates['assigneRetour'] = false;
-                    covoiturageRef.child('joueurs').child(joueurKey).update(updates);
-                });
-         }
-
-        function updateJoueursList(conducteurKey) {
+            covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).remove();
+            covoiturageRef.child('joueurs').child(joueurKey).once('value', (snapshot) => {
+                const joueur = snapshot.val();
+                const updates = {};
+                if (joueur.assigneAller) updates['assigneAller'] = false;
+                if (joueur.assigneRetour) updates['assigneRetour'] = false;
+                covoiturageRef.child('joueurs').child(joueurKey).update(updates);
+            });
+        }
 
         covoiturageRef.on('value', (snapshot) => {
             const data = snapshot.val();
@@ -543,19 +383,8 @@
             }
         });
 
-        // Initialisation
-        window.onload = function() {
-            const today = new Date();
-            const weekNumber = getWeekNumber(today);
-            document.getElementById('weekSelector').value = weekNumber;
-            nouvelleSemaine();
-        };
-
-        // Écouteur pour le changement de date
         document.getElementById('dateCovoiturage').addEventListener('change', (e) => {
-            if (covoiturageRef) {
-                covoiturageRef.child('date').set(e.target.value);
-            }
+            covoiturageRef.child('date').set(e.target.value);
         });
 
         covoiturageRef.child('date').on('value', (snapshot) => {
