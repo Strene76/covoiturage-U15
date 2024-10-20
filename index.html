@@ -258,8 +258,8 @@
                     } else {
                         alert("Ce joueur est déjà assigné pour ce trajet.");
                     }
-                    // Après l'assignation, on met à jour les listes déroulantes
-                    function mettreAJourListesDeroulantes() {
+          // Après l'assignation, on met à jour les listes déroulantes
+          function mettreAJourListesDeroulantes() {
     covoiturageRef.once('value', (snapshot) => {
         const data = snapshot.val();
         const selectConducteur = document.getElementById('selectConducteur');
