@@ -221,8 +221,11 @@
         }
 
         function assignerJoueur() {
-            const conducteurKey = document.getElementById('selectConducteur').value;
-            const joueurKey = document.getElementById('selectJoueur').value;
+            const selectConducteur = document.getElementById('selectConducteur');
+            const selectJoueur = document.getElementById('selectJoueur');
+            const conducteurKey = selectConducteur.value;
+            const joueurKey = selectJoueur.value;
+            
             if (conducteurKey && joueurKey) {
                 covoiturageRef.child('conducteurs').child(conducteurKey).once('value', (snapshot) => {
                     const conducteur = snapshot.val();
@@ -240,10 +243,36 @@
                             covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(true);
                         } else {
                             alert("Ce joueur est déjà assigné pour ce trajet.");
+                            return; // Sortir de la fonction si l'assignation n'est pas possible
                         }
+                        // Réinitialiser seulement la sélection du joueur
+                        selectJoueur.selectedIndex = 0;
+                        // Mettre à jour la liste des joueurs disponibles
+                        updateJoueursList(conducteurKey);
                     });
                 });
             }
+        }
+        function updateJoueursList(conducteurKey) {
+            covoiturageRef.child('conducteurs').child(conducteurKey).once('value', (conducteurSnapshot) => {
+                const conducteur = conducteurSnapshot.val();
+                covoiturageRef.child('joueurs').once('value', (joueursSnapshot) => {
+                    const joueurs = joueursSnapshot.val();
+                    const selectJoueur = document.getElementById('selectJoueur');
+                    selectJoueur.innerHTML = '<option value="">Sélectionnez un joueur</option>';
+                    
+                    for (const [key, joueur] of Object.entries(joueurs)) {
+                        if ((conducteur.trajet === 'aller' && !joueur.assigneAller) ||
+                            (conducteur.trajet === 'retour' && !joueur.assigneRetour) ||
+                            (conducteur.trajet === 'allerRetour' && (!joueur.assigneAller || !joueur.assigneRetour))) {
+                            const option = document.createElement('option');
+                            option.value = key;
+                            option.textContent = joueur.nom;
+                            selectJoueur.appendChild(option);
+                        }
+                    }
+                });
+            });
         }
 
         function supprimerAssignation(conducteurKey, joueurKey) {
@@ -290,8 +319,9 @@
 
             const selectConducteur = document.getElementById('selectConducteur');
             const selectJoueur = document.getElementById('selectJoueur');
-            selectConducteur.innerHTML = '';
-            selectJoueur.innerHTML = '';
+            const selectedConducteurKey = selectConducteur.value; // Sauvegarder la sélection actuelle
+            selectConducteur.innerHTML = '<option value="">Sélectionnez un conducteur</option>';
+            selectJoueur.innerHTML = '<option value="">Sélectionnez un joueur</option>';
             
             const conducteursSorted = Object.entries(data.conducteurs || {}).sort((a, b) => a[1].timestamp - b[1].timestamp);
             
@@ -301,6 +331,17 @@
                 option.textContent = `${conducteur.nom} (${conducteur.trajet})`;
                 selectConducteur.appendChild(option);
             }
+
+            // Restaurer la sélection du conducteur si elle existait
+            if (selectedConducteurKey) {
+                selectConducteur.value = selectedConducteurKey;
+                updateJoueursList(selectedConducteurKey);
+            }
+
+            // Ajouter un écouteur d'événements pour mettre à jour la liste des joueurs quand le conducteur change
+            selectConducteur.addEventListener('change', (e) => {
+                updateJoueursList(e.target.value);
+            });
             for (const key in data.joueurs) {
                 const joueur = data.joueurs[key];
                 if (!joueur.assigneAller || !joueur.assigneRetour) {
