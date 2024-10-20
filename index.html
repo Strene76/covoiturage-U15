@@ -94,6 +94,18 @@
             margin-top: 0;
         }
         
+        /* Nouveaux styles pour les petits boutons de suppression */
+        .btn-supprimer {
+            width: auto;
+            padding: 5px 10px;
+            font-size: 0.8em;
+            background-color: #e74c3c;
+        }
+        
+        .btn-supprimer:hover {
+            background-color: #c0392b;
+        }
+        
         @media (max-width: 600px) {
             body {
                 padding: 10px;
@@ -108,7 +120,13 @@
             }
             
             input, select, button {
-                font-size: 16px; /* Améliore la lisibilité sur mobile */
+                font-size: 16px;
+            }
+            
+            /* Ajustement pour les petits boutons sur mobile */
+            .btn-supprimer {
+                padding: 8px 12px;
+                font-size: 14px;
             }
         }
     </style>
@@ -246,9 +264,10 @@
             for (const key in data.joueurs) {
                 const joueur = data.joueurs[key];
                 const li = document.createElement('li');
-                li.textContent = joueur.nom; // Affichage simplifié, sans les informations d'assignation
+                li.textContent = joueur.nom;
                 const btnSupprimer = document.createElement('button');
                 btnSupprimer.textContent = 'Supprimer';
+                btnSupprimer.className = 'btn-supprimer'; // Ajout de la classe pour le style
                 btnSupprimer.onclick = () => supprimerJoueur(key);
                 li.appendChild(btnSupprimer);
                 listeJoueurs.appendChild(li);
@@ -263,6 +282,7 @@
                 li.textContent = `${conducteur.nom} (${conducteur.trajet})`;
                 const btnSupprimer = document.createElement('button');
                 btnSupprimer.textContent = 'Supprimer';
+                btnSupprimer.className = 'btn-supprimer'; // Ajout de la classe pour le style
                 btnSupprimer.onclick = () => supprimerConducteur(key);
                 li.appendChild(btnSupprimer);
                 listeConducteurs.appendChild(li);
