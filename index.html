@@ -125,6 +125,20 @@
             .btn-supprimer {
                 padding: 8px 12px;
                 font-size: 14px;
+        .btn-supprimer-assignation {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            margin-left: 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+        
+        .btn-supprimer-assignation:hover {
+            background-color: #c0392b;
+        }        
             }
         }
     </style>
@@ -197,7 +211,16 @@
                 document.getElementById('nomJoueur').value = '';
             }
         }
-
+        function supprimerAssignation(conducteurKey, joueurKey) {
+            covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).remove();
+            covoiturageRef.child('joueurs').child(joueurKey).once('value', (snapshot) => {
+                const joueur = snapshot.val();
+                const updates = {};
+                if (joueur.assigneAller) updates['assigneAller'] = false;
+                if (joueur.assigneRetour) updates['assigneRetour'] = false;
+                covoiturageRef.child('joueurs').child(joueurKey).update(updates);
+            });
+        }
         function supprimerJoueur(key) {
             covoiturageRef.child('joueurs').child(key).remove();
         }
@@ -312,6 +335,11 @@
                         if (data.joueurs && data.joueurs[joueurKey]) {
                             const li = document.createElement('li');
                             li.textContent = data.joueurs[joueurKey].nom;
+                            const btnSupprimer = document.createElement('button');
+                            btnSupprimer.textContent = 'Supprimer';
+                            btnSupprimer.className = 'btn-supprimer-assignation';
+                            btnSupprimer.onclick = () => supprimerAssignation(conducteurKey, joueurKey);
+                            li.appendChild(btnSupprimer);
                             ul.appendChild(li);
                         }
                     });
