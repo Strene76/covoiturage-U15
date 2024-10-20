@@ -15,6 +15,9 @@
         li { margin-bottom: 5px; }
         .remove { color: red; cursor: pointer; margin-left: 10px; }
         .warning { color: red; font-weight: bold; }
+        .vehicle { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+        .vehicle h4 { margin-top: 0; }
+        .players { margin-left: 20px; }
     </style>
 </head>
 <body>
@@ -228,7 +231,7 @@
             });
         }
 
-        function updateAssignments() {
+       function updateAssignments() {
             const assignmentsDiv = document.getElementById('assignments');
             assignmentsDiv.innerHTML = '';
 
@@ -240,9 +243,30 @@
                 drivers.forEach(driver => {
                     if (driver.direction === 'both' || driver.direction === direction) {
                         const driverAssignments = assignments[direction][driver.name] || [];
-                        const p = document.createElement('p');
-                        p.textContent = `${driver.name} (${driverAssignments.length}/${driver.seats}): ${driverAssignments.join(', ')}`;
-                        assignmentsDiv.appendChild(p);
+                        const vehicleDiv = document.createElement('div');
+                        vehicleDiv.className = 'vehicle';
+                        
+                        const vehicleTitle = document.createElement('h4');
+                        vehicleTitle.textContent = `${driver.name} (${driverAssignments.length}/${driver.seats} places)`;
+                        vehicleDiv.appendChild(vehicleTitle);
+
+                        if (driverAssignments.length > 0) {
+                            const playersList = document.createElement('ul');
+                            playersList.className = 'players';
+                            driverAssignments.forEach(player => {
+                                const playerItem = document.createElement('li');
+                                playerItem.textContent = player;
+                                playersList.appendChild(playerItem);
+                            });
+                            vehicleDiv.appendChild(playersList);
+                        } else {
+                            const emptyMessage = document.createElement('p');
+                            emptyMessage.textContent = 'Aucun joueur assigné';
+                            emptyMessage.style.fontStyle = 'italic';
+                            vehicleDiv.appendChild(emptyMessage);
+                        }
+
+                        assignmentsDiv.appendChild(vehicleDiv);
                     }
                 });
             });
