@@ -39,6 +39,10 @@
         <form id="covoiturageForm">
             <input type="text" id="nom" placeholder="Nom du conducteur" required>
             <input type="number" id="places" placeholder="Nombre de places disponibles" required min="1">
+            <div class="trajet-options">
+                <label><input type="checkbox" id="aller" name="trajet" value="aller"> Aller</label>
+                <label><input type="checkbox" id="retour" name="trajet" value="retour"> Retour</label>
+            </div>
             <div id="joueursSelect"></div>
             <button type="submit">Ajouter un covoiturage</button>
         </form>
@@ -93,12 +97,21 @@
             const places = document.getElementById('places').value;
             const date = new Date().toISOString();
             const joueurs = Array.from(document.querySelectorAll('.joueur-select:checked')).map(el => el.value);
+            const aller = document.getElementById('aller').checked;
+            const retour = document.getElementById('retour').checked;
+
+            if (!aller && !retour) {
+                alert("Veuillez sélectionner au moins un trajet (aller et/ou retour)");
+                return;
+            }
 
             covoiturageRef.push({
                 nom: nom,
                 date: date,
                 places: places,
-                joueurs: joueurs
+                joueurs: joueurs,
+                aller: aller,
+                retour: retour
             }).then(() => {
                 debugLog(`Covoiturage ajouté: ${nom}`);
                 this.reset();
@@ -197,9 +210,11 @@
                     })).then(joueursNoms => {
                         joueursHtml += joueursNoms.join(', ');
                         joueursHtml += '</p>';
+                        const trajetHtml = `<p>Trajet : ${covoiturage.aller ? 'Aller' : ''}${covoiturage.aller && covoiturage.retour ? ' et ' : ''}${covoiturage.retour ? 'Retour' : ''}</p>`;
                         covoiturageItem.innerHTML = `
                             <p><strong>${covoiturage.nom}</strong> - Date : ${date.toLocaleDateString('fr-FR')}</p>
                             <p>Places disponibles : ${covoiturage.places}</p>
+                            ${trajetHtml}
                             ${joueursHtml}
                             <button class="delete-btn" onclick="supprimerCovoiturage('${covoiturageId}')">Supprimer ce covoiturage</button>
                             <hr>
@@ -208,9 +223,11 @@
                     });
                 } else {
                     joueursHtml += 'Aucun joueur sélectionné</p>';
+                    const trajetHtml = `<p>Trajet : ${covoiturage.aller ? 'Aller' : ''}${covoiturage.aller && covoiturage.retour ? ' et ' : ''}${covoiturage.retour ? 'Retour' : ''}</p>`;
                     covoiturageItem.innerHTML = `
                         <p><strong>${covoiturage.nom}</strong> - Date : ${date.toLocaleDateString('fr-FR')}</p>
                         <p>Places disponibles : ${covoiturage.places}</p>
+                        ${trajetHtml}
                         ${joueursHtml}
                         <button class="delete-btn" onclick="supprimerCovoiturage('${covoiturageId}')">Supprimer ce covoiturage</button>
                         <hr>
