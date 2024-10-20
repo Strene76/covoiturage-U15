@@ -8,11 +8,12 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-        h1 { color: #333; }
+        h1, h2 { color: #333; }
         .section { margin-bottom: 20px; }
         input, select, button { margin: 5px 0; padding: 5px; }
         ul { list-style-type: none; padding: 0; }
         li { margin-bottom: 5px; }
+        .conducteur-item { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -49,6 +50,11 @@
         <button onclick="assignerJoueur()">Assigner</button>
     </div>
 
+    <div class="section">
+        <h2>Répartition des joueurs</h2>
+        <div id="repartitionJoueurs"></div>
+    </div>
+
     <script>
         // Configuration Firebase (à remplacer par vos propres informations)
         const firebaseConfig = {
@@ -79,6 +85,12 @@
 
         function supprimerJoueur(key) {
             covoiturageRef.child('joueurs').child(key).remove();
+            // Supprimer ce joueur de toutes les voitures
+            covoiturageRef.child('conducteurs').once('value', (snapshot) => {
+                snapshot.forEach((conducteurSnapshot) => {
+                    conducteurSnapshot.child('passagers').ref.child(key).remove();
+                });
+            });
         }
 
         // Fonctions pour ajouter et supprimer des conducteurs
@@ -104,7 +116,20 @@
             const conducteurKey = document.getElementById('selectConducteur').value;
             const joueurKey = document.getElementById('selectJoueur').value;
             if (conducteurKey && joueurKey) {
-                covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
+                // Vérifier si le joueur est déjà assigné à un autre conducteur
+                covoiturageRef.child('conducteurs').once('value', (snapshot) => {
+                    let joueurDejaAssigne = false;
+                    snapshot.forEach((conducteurSnapshot) => {
+                        if (conducteurSnapshot.child('passagers').hasChild(joueurKey)) {
+                            joueurDejaAssigne = true;
+                        }
+                    });
+                    if (!joueurDejaAssigne) {
+                        covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
+                    } else {
+                        alert("Ce joueur est déjà assigné à un conducteur.");
+                    }
+                });
             }
         }
 
@@ -154,6 +179,30 @@
                 option.value = key;
                 option.textContent = data.joueurs[key];
                 selectJoueur.appendChild(option);
+            }
+
+            // Mettre à jour la répartition des joueurs
+            const repartitionJoueurs = document.getElementById('repartitionJoueurs');
+            repartitionJoueurs.innerHTML = '';
+            for (const conducteurKey in data.conducteurs) {
+                const conducteur = data.conducteurs[conducteurKey];
+                const div = document.createElement('div');
+                div.className = 'conducteur-item';
+                div.innerHTML = `<h3>${conducteur.nom} (${conducteur.trajet})</h3>`;
+                const ul = document.createElement('ul');
+                for (const joueurKey in conducteur.passagers) {
+                    const li = document.createElement('li');
+                    li.textContent = data.joueurs[joueurKey];
+                    const btnRetirer = document.createElement('button');
+                    btnRetirer.textContent = 'Retirer';
+                    btnRetirer.onclick = () => {
+                        covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).remove();
+                    };
+                    li.appendChild(btnRetirer);
+                    ul.appendChild(li);
+                }
+                div.appendChild(ul);
+                repartitionJoueurs.appendChild(div);
             }
         });
 
