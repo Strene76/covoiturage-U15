@@ -14,6 +14,7 @@
         ul { list-style-type: none; padding: 0; }
         li { margin-bottom: 5px; }
         .remove { color: red; cursor: pointer; margin-left: 10px; }
+        .warning { color: red; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -48,6 +49,10 @@
         <h2>Assignation des joueurs</h2>
         <select id="playerSelect"></select>
         <select id="driverSelect"></select>
+        <select id="tripDirection">
+            <option value="aller">Aller</option>
+            <option value="retour">Retour</option>
+        </select>
         <button onclick="assignPlayer()">Assigner</button>
     </div>
 
@@ -74,7 +79,7 @@
 
         let players = [];
         let drivers = [];
-        let assignments = {};
+        let assignments = { aller: {}, retour: {} };
 
         function updateFirebase() {
             const data = {
@@ -93,7 +98,7 @@
                     document.getElementById('date').value = data.date || '';
                     players = data.players || [];
                     drivers = data.drivers || [];
-                    assignments = data.assignments || {};
+                    assignments = data.assignments || { aller: {}, retour: {} };
                     updateLists();
                     updateAssignments();
                 }
@@ -125,8 +130,10 @@
 
         function removePlayer(player) {
             players = players.filter(p => p !== player);
-            Object.keys(assignments).forEach(driver => {
-                assignments[driver] = assignments[driver].filter(p => p !== player);
+            ['aller', 'retour'].forEach(direction => {
+                Object.keys(assignments[direction]).forEach(driver => {
+                    assignments[direction][driver] = assignments[direction][driver].filter(p => p !== player);
+                });
             });
             updateLists();
             updateAssignments();
@@ -135,7 +142,9 @@
 
         function removeDriver(driverName) {
             drivers = drivers.filter(d => d.name !== driverName);
-            delete assignments[driverName];
+            ['aller', 'retour'].forEach(direction => {
+                delete assignments[direction][driverName];
+            });
             updateLists();
             updateAssignments();
             updateFirebase();
@@ -144,17 +153,32 @@
         function assignPlayer() {
             const player = document.getElementById('playerSelect').value;
             const driver = document.getElementById('driverSelect').value;
+            const direction = document.getElementById('tripDirection').value;
+            
             if (player && driver) {
-                if (!assignments[driver]) {
-                    assignments[driver] = [];
+                const driverObj = drivers.find(d => d.name === driver);
+                if (!driverObj || (driverObj.direction !== 'both' && driverObj.direction !== direction)) {
+                    alert("Ce conducteur n'est pas disponible pour cette direction.");
+                    return;
                 }
-                // Vérifier si le joueur est déjà assigné à un autre conducteur
-                Object.keys(assignments).forEach(d => {
-                    assignments[d] = assignments[d].filter(p => p !== player);
+
+                // Vérifier si le joueur est déjà assigné à un autre conducteur pour cette direction
+                Object.keys(assignments[direction]).forEach(d => {
+                    assignments[direction][d] = assignments[direction][d].filter(p => p !== player);
                 });
-                assignments[driver].push(player);
-                updateAssignments();
-                updateFirebase();
+
+                if (!assignments[direction][driver]) {
+                    assignments[direction][driver] = [];
+                }
+
+                // Vérifier si le conducteur a encore de la place
+                if (assignments[direction][driver].length < driverObj.seats) {
+                    assignments[direction][driver].push(player);
+                    updateAssignments();
+                    updateFirebase();
+                } else {
+                    alert("Ce conducteur n'a plus de place disponible pour cette direction.");
+                }
             }
         }
 
@@ -207,20 +231,32 @@
         function updateAssignments() {
             const assignmentsDiv = document.getElementById('assignments');
             assignmentsDiv.innerHTML = '';
-            drivers.forEach(driver => {
-                const driverAssignments = assignments[driver.name] || [];
-                const p = document.createElement('p');
-                p.textContent = `${driver.name}: ${driverAssignments.join(', ')}`;
-                assignmentsDiv.appendChild(p);
+
+            ['aller', 'retour'].forEach(direction => {
+                const h3 = document.createElement('h3');
+                h3.textContent = direction.charAt(0).toUpperCase() + direction.slice(1);
+                assignmentsDiv.appendChild(h3);
+
+                drivers.forEach(driver => {
+                    if (driver.direction === 'both' || driver.direction === direction) {
+                        const driverAssignments = assignments[direction][driver.name] || [];
+                        const p = document.createElement('p');
+                        p.textContent = `${driver.name} (${driverAssignments.length}/${driver.seats}): ${driverAssignments.join(', ')}`;
+                        assignmentsDiv.appendChild(p);
+                    }
+                });
             });
 
             // Vérifier que tous les joueurs sont assignés pour l'aller et le retour
-            const assignedPlayers = new Set(Object.values(assignments).flat());
-            const unassignedPlayers = players.filter(player => !assignedPlayers.has(player));
+            const assignedPlayersAller = new Set(Object.values(assignments.aller).flat());
+            const assignedPlayersRetour = new Set(Object.values(assignments.retour).flat());
+            const unassignedPlayers = players.filter(player => 
+                !assignedPlayersAller.has(player) || !assignedPlayersRetour.has(player));
+
             if (unassignedPlayers.length > 0) {
                 const warning = document.createElement('p');
-                warning.style.color = 'red';
-                warning.textContent = `Attention : ${unassignedPlayers.join(', ')} n'ont pas de covoiturage.`;
+                warning.className = 'warning';
+                warning.textContent = `Attention : ${unassignedPlayers.join(', ')} n'ont pas de covoiturage complet (aller et retour).`;
                 assignmentsDiv.appendChild(warning);
             }
         }
