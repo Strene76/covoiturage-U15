@@ -4,56 +4,232 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Covoiturage U15</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        h1 { text-align: center; }
+        .section { margin-bottom: 20px; }
+        input, select, button { margin: 5px; padding: 5px; }
+        ul { list-style-type: none; padding: 0; }
+        li { margin-bottom: 5px; }
+        .remove { color: red; cursor: pointer; margin-left: 10px; }
+    </style>
 </head>
-<body class="bg-gray-100 p-4">
-    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
-        <h1 class="text-3xl font-bold mb-6 text-center text-blue-600">Covoiturage U15</h1>
-        
-        <div class="mb-6">
-            <label for="date" class="block mb-2 font-semibold">Date du covoiturage :</label>
-            <input type="date" id="date" class="w-full p-2 border rounded">
-        </div>
+<body>
+    <h1>Covoiturage U15</h1>
+    
+    <div class="section">
+        <label for="date">Date du covoiturage:</label>
+        <input type="date" id="date">
+    </div>
 
-        <div class="mb-6">
-            <h2 class="text-xl font-semibold mb-2">Liste des joueurs</h2>
-            <div class="flex mb-2">
-                <input type="text" id="newPlayer" placeholder="Nom du joueur" class="flex-grow p-2 border rounded-l">
-                <button id="addPlayer" class="bg-green-500 text-white px-4 py-2 rounded-r">Ajouter</button>
-            </div>
-            <ul id="playerList" class="list-disc pl-5"></ul>
-        </div>
+    <div class="section">
+        <h2>Joueurs</h2>
+        <input type="text" id="newPlayer" placeholder="Nom du joueur">
+        <button onclick="addPlayer()">Ajouter joueur</button>
+        <ul id="playerList"></ul>
+    </div>
 
-        <div class="mb-6">
-            <h2 class="text-xl font-semibold mb-2">Conducteurs</h2>
-            <div class="flex mb-2">
-                <input type="text" id="newDriver" placeholder="Nom du conducteur" class="flex-grow p-2 border rounded-l">
-                <input type="number" id="seats" placeholder="Nombre de places" class="w-20 p-2 border-t border-b">
-                <button id="addDriver" class="bg-green-500 text-white px-4 py-2 rounded-r">Ajouter</button>
-            </div>
-            <div id="driverList"></div>
-        </div>
+    <div class="section">
+        <h2>Conducteurs</h2>
+        <input type="text" id="newDriver" placeholder="Nom du conducteur">
+        <input type="number" id="seats" placeholder="Nombre de places" min="1">
+        <select id="direction">
+            <option value="aller">Aller</option>
+            <option value="retour">Retour</option>
+            <option value="both">Aller et Retour</option>
+        </select>
+        <button onclick="addDriver()">Ajouter conducteur</button>
+        <ul id="driverList"></ul>
+    </div>
 
-        <div class="mb-6">
-            <h2 class="text-xl font-semibold mb-2">Attribution des joueurs</h2>
-            <div class="flex mb-2">
-                <select id="playerSelect" class="flex-grow p-2 border rounded-l"></select>
-                <select id="driverSelect" class="flex-grow p-2 border-t border-b"></select>
-                <button id="assignPlayer" class="bg-blue-500 text-white px-4 py-2 rounded-r">Assigner</button>
-            </div>
-        </div>
+    <div class="section">
+        <h2>Assignation des joueurs</h2>
+        <select id="playerSelect"></select>
+        <select id="driverSelect"></select>
+        <button onclick="assignPlayer()">Assigner</button>
+    </div>
 
-        <div>
-            <h2 class="text-xl font-semibold mb-2">Récapitulatif des attributions</h2>
-            <div id="assignments"></div>
-        </div>
+    <div class="section">
+        <h2>Répartition des joueurs</h2>
+        <div id="assignments"></div>
     </div>
 
     <script>
-        // Ici, nous ajouterons le code JavaScript pour gérer les interactions et la sauvegarde avec Firebase
-        // Ce code sera fourni séparément pour plus de clarté
+        // Configuration Firebase (à remplacer par vos propres informations)
+        const firebaseConfig = {
+              apiKey: "AIzaSyBfr0A4LZbuFc8D8MI0wL_nfzO3Atbcqwk",
+  authDomain: "covoiturage-u15.firebaseapp.com",
+  databaseURL: "https://covoiturage-u15-default-rtdb.firebaseio.com",
+  projectId: "covoiturage-u15",
+  storageBucket: "covoiturage-u15.appspot.com",
+  messagingSenderId: "83669001760",
+  appId: "1:83669001760:web:b0d65f3832344dd928be45"
+        };
+
+        // Initialiser Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        let players = [];
+        let drivers = [];
+        let assignments = {};
+
+        function updateFirebase() {
+            const data = {
+                date: document.getElementById('date').value,
+                players: players,
+                drivers: drivers,
+                assignments: assignments
+            };
+            database.ref('covoiturage').set(data);
+        }
+
+        function loadFromFirebase() {
+            database.ref('covoiturage').once('value').then((snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    document.getElementById('date').value = data.date || '';
+                    players = data.players || [];
+                    drivers = data.drivers || [];
+                    assignments = data.assignments || {};
+                    updateLists();
+                    updateAssignments();
+                }
+            });
+        }
+
+        function addPlayer() {
+            const playerName = document.getElementById('newPlayer').value.trim();
+            if (playerName && !players.includes(playerName)) {
+                players.push(playerName);
+                updateLists();
+                updateFirebase();
+            }
+            document.getElementById('newPlayer').value = '';
+        }
+
+        function addDriver() {
+            const driverName = document.getElementById('newDriver').value.trim();
+            const seats = parseInt(document.getElementById('seats').value);
+            const direction = document.getElementById('direction').value;
+            if (driverName && seats && direction) {
+                drivers.push({ name: driverName, seats: seats, direction: direction });
+                updateLists();
+                updateFirebase();
+            }
+            document.getElementById('newDriver').value = '';
+            document.getElementById('seats').value = '';
+        }
+
+        function removePlayer(player) {
+            players = players.filter(p => p !== player);
+            Object.keys(assignments).forEach(driver => {
+                assignments[driver] = assignments[driver].filter(p => p !== player);
+            });
+            updateLists();
+            updateAssignments();
+            updateFirebase();
+        }
+
+        function removeDriver(driverName) {
+            drivers = drivers.filter(d => d.name !== driverName);
+            delete assignments[driverName];
+            updateLists();
+            updateAssignments();
+            updateFirebase();
+        }
+
+        function assignPlayer() {
+            const player = document.getElementById('playerSelect').value;
+            const driver = document.getElementById('driverSelect').value;
+            if (player && driver) {
+                if (!assignments[driver]) {
+                    assignments[driver] = [];
+                }
+                // Vérifier si le joueur est déjà assigné à un autre conducteur
+                Object.keys(assignments).forEach(d => {
+                    assignments[d] = assignments[d].filter(p => p !== player);
+                });
+                assignments[driver].push(player);
+                updateAssignments();
+                updateFirebase();
+            }
+        }
+
+        function updateLists() {
+            const playerList = document.getElementById('playerList');
+            playerList.innerHTML = '';
+            players.forEach(player => {
+                const li = document.createElement('li');
+                li.textContent = player;
+                const removeBtn = document.createElement('span');
+                removeBtn.textContent = '❌';
+                removeBtn.className = 'remove';
+                removeBtn.onclick = () => removePlayer(player);
+                li.appendChild(removeBtn);
+                playerList.appendChild(li);
+            });
+
+            const driverList = document.getElementById('driverList');
+            driverList.innerHTML = '';
+            drivers.forEach(driver => {
+                const li = document.createElement('li');
+                li.textContent = `${driver.name} (${driver.seats} places, ${driver.direction})`;
+                const removeBtn = document.createElement('span');
+                removeBtn.textContent = '❌';
+                removeBtn.className = 'remove';
+                removeBtn.onclick = () => removeDriver(driver.name);
+                li.appendChild(removeBtn);
+                driverList.appendChild(li);
+            });
+
+            const playerSelect = document.getElementById('playerSelect');
+            playerSelect.innerHTML = '';
+            players.forEach(player => {
+                const option = document.createElement('option');
+                option.value = player;
+                option.textContent = player;
+                playerSelect.appendChild(option);
+            });
+
+            const driverSelect = document.getElementById('driverSelect');
+            driverSelect.innerHTML = '';
+            drivers.forEach(driver => {
+                const option = document.createElement('option');
+                option.value = driver.name;
+                option.textContent = driver.name;
+                driverSelect.appendChild(option);
+            });
+        }
+
+        function updateAssignments() {
+            const assignmentsDiv = document.getElementById('assignments');
+            assignmentsDiv.innerHTML = '';
+            drivers.forEach(driver => {
+                const driverAssignments = assignments[driver.name] || [];
+                const p = document.createElement('p');
+                p.textContent = `${driver.name}: ${driverAssignments.join(', ')}`;
+                assignmentsDiv.appendChild(p);
+            });
+
+            // Vérifier que tous les joueurs sont assignés pour l'aller et le retour
+            const assignedPlayers = new Set(Object.values(assignments).flat());
+            const unassignedPlayers = players.filter(player => !assignedPlayers.has(player));
+            if (unassignedPlayers.length > 0) {
+                const warning = document.createElement('p');
+                warning.style.color = 'red';
+                warning.textContent = `Attention : ${unassignedPlayers.join(', ')} n'ont pas de covoiturage.`;
+                assignmentsDiv.appendChild(warning);
+            }
+        }
+
+        // Charger les données depuis Firebase au chargement de la page
+        loadFromFirebase();
+
+        // Mettre à jour Firebase lorsque la date change
+        document.getElementById('date').addEventListener('change', updateFirebase);
     </script>
 </body>
 </html>
