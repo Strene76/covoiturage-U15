@@ -8,11 +8,16 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <style>
         :root {
-            --primary-color: #3498db;
-            --secondary-color: #2ecc71;
-            --background-color: #ecf0f1;
-            --text-color: #34495e;
+            --primary-color: #00a8ff;
+            --secondary-color: #26de81;
+            --background-color: #1e272e;
+            --surface-color: #2d3436;
+            --hover-color: #0097e6;
+            --text-color: #dfe6e9;
+            --text-muted: #b2bec3;
             --border-radius: 8px;
+            --danger-color: #ff4757;
+            --danger-hover: #ee3545;
         }
         
         body {
@@ -27,10 +32,10 @@
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background-color: white;
+            background-color: var(--surface-color);
             padding: 20px;
             border-radius: var(--border-radius);
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
         
         h1, h2 {
@@ -41,29 +46,43 @@
         .section {
             margin-bottom: 30px;
             padding: 20px;
-            background-color: #f9f9f9;
+            background-color: rgba(255, 255, 255, 0.05);
             border-radius: var(--border-radius);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
-        input, select, button {
+        input, select {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
-            border: 1px solid #ddd;
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: var(--border-radius);
             box-sizing: border-box;
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 168, 255, 0.2);
         }
         
         button {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: none;
+            border-radius: var(--border-radius);
             background-color: var(--primary-color);
             color: white;
-            border: none;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.3s ease;
         }
         
         button:hover {
-            background-color: #2980b9;
+            background-color: var(--hover-color);
+            transform: translateY(-1px);
         }
         
         ul {
@@ -72,21 +91,22 @@
         }
         
         li {
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.05);
             margin-bottom: 10px;
             padding: 10px;
             border-radius: var(--border-radius);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .assignation {
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.05);
             padding: 15px;
             margin-top: 15px;
             border-radius: var(--border-radius);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .assignation h3 {
@@ -98,11 +118,35 @@
             width: auto;
             padding: 5px 10px;
             font-size: 0.8em;
-            background-color: #e74c3c;
+            background-color: var(--danger-color);
+            margin: 0 0 0 10px;
         }
         
         .btn-supprimer:hover {
-            background-color: #c0392b;
+            background-color: var(--danger-hover);
+        }
+        
+        .nombre-places {
+            width: 60px;
+            margin-left: 10px;
+        }
+
+        /* Style pour les options dans les menus déroulants */
+        option {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            padding: 5px;
+        }
+
+        /* Style pour mettre en évidence les sections actives */
+        .section:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Améliorations pour les états de focus */
+        *:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 168, 255, 0.2);
         }
         
         @media (max-width: 600px) {
