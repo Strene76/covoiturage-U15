@@ -133,7 +133,22 @@
         .btn-supprimer:hover {
             background-color: var(--danger-hover);
         }
-        
+        .places-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+}
+
+.places-container label {
+    color: var(--text-color);
+    font-size: 0.9em;
+}
+
+.nombre-places {
+    width: 60px;
+    margin: 0;
+}
         .nombre-places {
             width: 60px;
             margin-left: 10px;
@@ -205,7 +220,10 @@
         <option value="retour">Retour</option>
         <option value="allerRetour">Aller-Retour</option>
     </select>
-    <input type="number" id="nombrePlaces" class="nombre-places" min="1" max="8" value="4" placeholder="Places">
+    <div class="places-container">
+        <input type="number" id="nombrePlaces" class="nombre-places" min="1" max="8" value="4">
+        <label for="nombrePlaces">nombre de places disponible dans le véhicule</label>
+    </div>
     <button onclick="ajouterConducteur()">Ajouter</button>
     <ul id="listeConducteurs"></ul>
 </div>
