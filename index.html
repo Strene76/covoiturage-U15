@@ -324,41 +324,38 @@
 }
 
         function supprimerConducteur(key) {
-            covoiturageRef.child('conducteurs').child(key).remove();
-        }
-
-        function assignerJoueur() {
-            const selectConducteur = document.getElementById('selectConducteur');
-            const selectJoueur = document.getElementById('selectJoueur');
-            const conducteurKey = selectConducteur.value;
-            const joueurKey = selectJoueur.value;
-            
-            if (conducteurKey && joueurKey) {
-                covoiturageRef.child('conducteurs').child(conducteurKey).once('value', (snapshot) => {
-                    const conducteur = snapshot.val();
-                    covoiturageRef.child('joueurs').child(joueurKey).once('value', (snapshot) => {
-                        const joueur = snapshot.val();
-                        if (conducteur.trajet === 'aller' && !joueur.assigneAller) {
-                            covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(true);
-                        } else if (conducteur.trajet === 'retour' && !joueur.assigneRetour) {
-                            covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(true);
-                        } else if (conducteur.trajet === 'allerRetour' && !joueur.assigneAller && !joueur.assigneRetour) {
-                            covoiturageRef.child('conducteurs').child(conducteurKey).child('passagers').child(joueurKey).set(true);
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(true);
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(true);
-                        } else {
-                            alert("Ce joueur est déjà assigné pour ce trajet.");
-                            return; // Sortir de la fonction si l'assignation n'est pas possible
+    // D'abord, récupérer les informations du conducteur
+    covoiturageRef.child('conducteurs').child(key).once('value', (snapshot) => {
+        const conducteur = snapshot.val();
+        if (conducteur && conducteur.passagers) {
+            // Pour chaque passager, mettre à jour son statut
+            Object.keys(conducteur.passagers).forEach(joueurKey => {
+                covoiturageRef.child('joueurs').child(joueurKey).once('value', (snapshot) => {
+                    const joueur = snapshot.val();
+                    if (joueur) {
+                        // Mettre à jour le statut du joueur selon le trajet du conducteur
+                        if (conducteur.trajet === 'aller') {
+                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(false);
+                        } else if (conducteur.trajet === 'retour') {
+                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(false);
+                        } else if (conducteur.trajet === 'allerRetour') {
+                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(false);
+                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(false);
                         }
-                        // Réinitialiser seulement la sélection du joueur
-                        selectJoueur.selectedIndex = 0;
-                        // Mettre à jour la liste des joueurs disponibles
-                        updateJoueursList(conducteurKey);
-                    });
+                    }
                 });
-            }
+            });
+        }
+        // Ensuite, supprimer le conducteur
+        covoiturageRef.child('conducteurs').child(key).remove().then(() => {
+            // La mise à jour de l'interface se fera automatiquement grâce à l'écoute des changements
+            console.log("Conducteur supprimé avec succès");
+        }).catch(error => {
+            console.error("Erreur lors de la suppression du conducteur:", error);
+            alert("Erreur lors de la suppression du conducteur");
+        });
+    });
+}
         }
         function updateJoueursList(conducteurKey) {
             covoiturageRef.child('conducteurs').child(conducteurKey).once('value', (conducteurSnapshot) => {
