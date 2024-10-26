@@ -324,35 +324,7 @@
 }
 
         function supprimerConducteur(key) {
-    // D'abord, récupérer les informations du conducteur
-    covoiturageRef.child('conducteurs').child(key).once('value', (snapshot) => {
-        const conducteur = snapshot.val();
-        if (conducteur && conducteur.passagers) {
-            // Pour chaque passager, mettre à jour son statut
-            Object.keys(conducteur.passagers).forEach(joueurKey => {
-                covoiturageRef.child('joueurs').child(joueurKey).once('value', (snapshot) => {
-                    const joueur = snapshot.val();
-                    if (joueur) {
-                        // Mettre à jour le statut du joueur selon le trajet du conducteur
-                        if (conducteur.trajet === 'aller') {
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(false);
-                        } else if (conducteur.trajet === 'retour') {
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(false);
-                        } else if (conducteur.trajet === 'allerRetour') {
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneAller').set(false);
-                            covoiturageRef.child('joueurs').child(joueurKey).child('assigneRetour').set(false);
-                        }
-                    }
-                });
-            });
-        }
-        // Ensuite, supprimer le conducteur
-        covoiturageRef.child('conducteurs').child(key).remove().then(() => {
-            // La mise à jour de l'interface se fera automatiquement grâce à l'écoute des changements
-            console.log("Conducteur supprimé avec succès");
-        }).catch(error => {
-            console.error("Erreur lors de la suppression du conducteur:", error);
-            alert("Erreur lors de la suppression du conducteur");
+            covoiturageRef.child('conducteurs').child(key).remove();
         }
 
         function assignerJoueur() {
