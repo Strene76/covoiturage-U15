@@ -292,6 +292,21 @@
     background-color: var(--primary-color);
     color: white;
 }
+.covoiturage-select {
+    width: auto;
+    padding: 3px 6px;
+    margin-right: 10px;
+    font-size: 0.8em;
+    background-color: var(--background-color);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    color: var(--text-color);
+}
+
+.covoiturage-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
         }
     </style>
 </head>
@@ -418,27 +433,18 @@
     const nom = document.getElementById('nomJoueur').value;
     const covoiturage = document.getElementById('covoiturageOption').value;
     if (nom) {
-        const joueur = {
+        covoiturageRef.child('joueurs').push({
             nom: nom,
             assigneAller: false,
             assigneRetour: false,
-            besoinCovoiturage: covoiturage
-        };
-        
-        // Mettre à jour les statuts de covoiturage en fonction de l'option choisie
-        if (covoiturage === 'aller' || covoiturage === 'allerRetour') {
-            joueur.besoinAllerCovoiturage = true;
-        }
-        if (covoiturage === 'retour' || covoiturage === 'allerRetour') {
-            joueur.besoinRetourCovoiturage = true;
-        }
-
-        covoiturageRef.child('joueurs').push(joueur);
+            besoinCovoiturage: covoiturage,
+            besoinAllerCovoiturage: covoiturage === 'aller' || covoiturage === 'allerRetour',
+            besoinRetourCovoiturage: covoiturage === 'retour' || covoiturage === 'allerRetour'
+        });
         document.getElementById('nomJoueur').value = '';
         document.getElementById('covoiturageOption').value = 'non';
     }
 }
-
     function supprimerJoueur(key) {
         if(confirm("Êtes-vous sûr de vouloir supprimer ce joueur ?")) {
             covoiturageRef.child('joueurs').child(key).remove();
@@ -567,42 +573,61 @@
         
         // Mettre à jour la liste des joueurs
         const listeJoueurs = document.getElementById('listeJoueurs');
-        listeJoueurs.innerHTML = '';
-        for (const key in data.joueurs) {
-            const joueur = data.joueurs[key];
-            const li = document.createElement('li');
-            
-            const joueurInfo = document.createElement('div');
-            joueurInfo.className = 'joueur-info';
-            
-            const nomSpan = document.createElement('span');
-nomSpan.textContent = `${joueur.nom} ${joueur.besoinCovoiturage !== 'non' ? '(Covoiturage: ' + joueur.besoinCovoiturage + ')' : ''}`;
-joueurInfo.appendChild(nomSpan);
-            
-            const statusBadges = document.createElement('div');
-            statusBadges.className = 'status-badges';
-            
-            const badgeAller = document.createElement('span');
-            badgeAller.className = `badge ${joueur.assigneAller ? 'badge-aller' : 'badge-inactive'}`;
-            badgeAller.textContent = 'Aller';
-            statusBadges.appendChild(badgeAller);
-            
-            const badgeRetour = document.createElement('span');
-            badgeRetour.className = `badge ${joueur.assigneRetour ? 'badge-retour' : 'badge-inactive'}`;
-            badgeRetour.textContent = 'Retour';
-            statusBadges.appendChild(badgeRetour);
-            
-            joueurInfo.appendChild(statusBadges);
-            
-            const btnSupprimer = document.createElement('button');
-            btnSupprimer.textContent = 'Supprimer';
-            btnSupprimer.className = 'btn-supprimer';
-            btnSupprimer.onclick = () => supprimerJoueur(key);
-            
-            li.appendChild(joueurInfo);
-            li.appendChild(btnSupprimer);
-            listeJoueurs.appendChild(li);
-        }
+listeJoueurs.innerHTML = '';
+for (const key in data.joueurs) {
+    const joueur = data.joueurs[key];
+    const li = document.createElement('li');
+    
+    const joueurInfo = document.createElement('div');
+    joueurInfo.className = 'joueur-info';
+    
+    const nomSpan = document.createElement('span');
+    nomSpan.textContent = joueur.nom;
+    joueurInfo.appendChild(nomSpan);
+    
+    const statusBadges = document.createElement('div');
+    statusBadges.className = 'status-badges';
+    
+    // Ajout du sélecteur de covoiturage
+    const covoiturageSelect = document.createElement('select');
+    covoiturageSelect.className = 'covoiturage-select';
+    covoiturageSelect.innerHTML = `
+        <option value="non" ${joueur.besoinCovoiturage === 'non' ? 'selected' : ''}>Pas de covoiturage</option>
+        <option value="aller" ${joueur.besoinCovoiturage === 'aller' ? 'selected' : ''}>Covoiturage aller</option>
+        <option value="retour" ${joueur.besoinCovoiturage === 'retour' ? 'selected' : ''}>Covoiturage retour</option>
+        <option value="allerRetour" ${joueur.besoinCovoiturage === 'allerRetour' ? 'selected' : ''}>Covoiturage aller-retour</option>
+    `;
+    covoiturageSelect.onchange = (e) => {
+        const newValue = e.target.value;
+        covoiturageRef.child('joueurs').child(key).update({
+            besoinCovoiturage: newValue,
+            besoinAllerCovoiturage: newValue === 'aller' || newValue === 'allerRetour',
+            besoinRetourCovoiturage: newValue === 'retour' || newValue === 'allerRetour'
+        });
+    };
+    statusBadges.appendChild(covoiturageSelect);
+    
+    const badgeAller = document.createElement('span');
+    badgeAller.className = `badge ${joueur.assigneAller ? 'badge-aller' : 'badge-inactive'}`;
+    badgeAller.textContent = 'Aller';
+    statusBadges.appendChild(badgeAller);
+    
+    const badgeRetour = document.createElement('span');
+    badgeRetour.className = `badge ${joueur.assigneRetour ? 'badge-retour' : 'badge-inactive'}`;
+    badgeRetour.textContent = 'Retour';
+    statusBadges.appendChild(badgeRetour);
+    
+    joueurInfo.appendChild(statusBadges);
+    
+    const btnSupprimer = document.createElement('button');
+    btnSupprimer.textContent = 'Supprimer';
+    btnSupprimer.className = 'btn-supprimer';
+    btnSupprimer.onclick = () => supprimerJoueur(key);
+    
+    li.appendChild(joueurInfo);
+    li.appendChild(btnSupprimer);
+    listeJoueurs.appendChild(li);
+}
 
         // Mettre à jour la liste des conducteurs
         const listeConducteurs = document.getElementById('listeConducteurs');
