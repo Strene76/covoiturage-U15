@@ -273,6 +273,25 @@
 .status-covoiturage {
     background-color: var(--primary-color);
 }
+            
+.covoiturageOption {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    padding: 10px;
+}
+
+.covoiturage-status {
+    font-size: 0.8em;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    background-color: var(--primary-color);
+    color: white;
+}
         }
     </style>
 </head>
@@ -323,11 +342,17 @@
         </div>
 
         <div class="section">
-            <h2>Ajouter un joueur</h2>
-            <input type="text" id="nomJoueur" placeholder="Nom du joueur">
-            <button onclick="ajouterJoueur()">Ajouter</button>
-            <ul id="listeJoueurs"></ul>
-        </div>
+    <h2>Ajouter un joueur</h2>
+    <input type="text" id="nomJoueur" placeholder="Nom du joueur">
+    <select id="covoiturageOption">
+        <option value="non">Pas de covoiturage</option>
+        <option value="aller">Covoiturage aller</option>
+        <option value="retour">Covoiturage retour</option>
+        <option value="allerRetour">Covoiturage aller-retour</option>
+    </select>
+    <button onclick="ajouterJoueur()">Ajouter</button>
+    <ul id="listeJoueurs"></ul>
+</div>
 
         <div class="section">
             <h2>Ajouter un conducteur</h2>
@@ -390,16 +415,29 @@
     });
     // Fonctions pour ajouter et supprimer des joueurs
     function ajouterJoueur() {
-        const nom = document.getElementById('nomJoueur').value;
-        if (nom) {
-            covoiturageRef.child('joueurs').push({
-                nom: nom,
-                assigneAller: false,
-                assigneRetour: false
-            });
-            document.getElementById('nomJoueur').value = '';
+    const nom = document.getElementById('nomJoueur').value;
+    const covoiturage = document.getElementById('covoiturageOption').value;
+    if (nom) {
+        const joueur = {
+            nom: nom,
+            assigneAller: false,
+            assigneRetour: false,
+            besoinCovoiturage: covoiturage
+        };
+        
+        // Mettre à jour les statuts de covoiturage en fonction de l'option choisie
+        if (covoiturage === 'aller' || covoiturage === 'allerRetour') {
+            joueur.besoinAllerCovoiturage = true;
         }
+        if (covoiturage === 'retour' || covoiturage === 'allerRetour') {
+            joueur.besoinRetourCovoiturage = true;
+        }
+
+        covoiturageRef.child('joueurs').push(joueur);
+        document.getElementById('nomJoueur').value = '';
+        document.getElementById('covoiturageOption').value = 'non';
     }
+}
 
     function supprimerJoueur(key) {
         if(confirm("Êtes-vous sûr de vouloir supprimer ce joueur ?")) {
@@ -538,8 +576,8 @@
             joueurInfo.className = 'joueur-info';
             
             const nomSpan = document.createElement('span');
-            nomSpan.textContent = joueur.nom;
-            joueurInfo.appendChild(nomSpan);
+nomSpan.textContent = `${joueur.nom} ${joueur.besoinCovoiturage !== 'non' ? '(Covoiturage: ' + joueur.besoinCovoiturage + ')' : ''}`;
+joueurInfo.appendChild(nomSpan);
             
             const statusBadges = document.createElement('div');
             statusBadges.className = 'status-badges';
